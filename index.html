@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLU — Make your dot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#141414;
+    --bone:#F4EEE2;
+    --pink:#FF3D8B;
+    --ember:#FF4A17;
+    --acid:#C6FF33;
+    --blue:#1E3AFF;
+    --rave:#9D3CFF;
+    --fizz:#29F0C8;
+    --toffee:#C4802F;
+    --yolk:#FFC300;
+    --pool:#19C5FF;
+    --cherry:#E62144;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none!important}
+  html,body{height:100%}
+  body{
+    background:var(--bone);
+    color:var(--ink);
+    font-family:'Archivo',system-ui,sans-serif;
+    font-weight:500;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:28px 20px 40px;
+  }
+  .wrap{width:100%;max-width:460px}
+
+  .eyebrow{
+    font-size:11px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    font-weight:700;
+    display:flex;
+    justify-content:space-between;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:8px;
+  }
+  h1{
+    font-family:'Archivo Black',sans-serif;
+    font-size:clamp(34px,9vw,46px);
+    line-height:1.02;
+    letter-spacing:-.01em;
+    margin:16px 0 4px;
+  }
+  .sub{font-size:14px;line-height:1.45;max-width:34ch}
+  .sub b{font-weight:700}
+
+  .stage{
+    position:relative;
+    margin:20px 0 14px;
+    background:var(--ink);
+    border-radius:16px;
+    padding:14px;
+  }
+  canvas#dot{
+    display:block;
+    width:100%;
+    aspect-ratio:1/1;
+    touch-action:none;
+    cursor:grab;
+    border-radius:8px;
+  }
+  canvas#dot:active{cursor:grabbing}
+  .badge{
+    position:absolute;
+    left:22px;bottom:22px;
+    font-size:10px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    font-weight:700;
+    color:var(--bone);
+    opacity:.85;
+    pointer-events:none;
+  }
+  .hint{
+    position:absolute;
+    right:22px;top:22px;
+    font-size:10px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    font-weight:700;
+    color:var(--bone);
+    opacity:.55;
+    pointer-events:none;
+  }
+
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .swatches{margin-bottom:14px}
+  .swatch{
+    width:40px;height:40px;
+    border-radius:50%;
+    border:3px solid transparent;
+    cursor:pointer;
+    flex:0 0 auto;
+    transition:transform .12s ease;
+  }
+  .swatch[aria-pressed="true"]{border-color:var(--ink);transform:scale(1.12)}
+  .swatch:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+  .stage.nobg{background:#E7E0CF}  /* one shade below Bone so Bone-colored details stay visible; export is still fully transparent */
+  .stage.nobg .hint,.stage.nobg .badge{color:var(--ink)}
+
+  .shop{display:flex;gap:18px;align-items:flex-start}
+  .shop .styles{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+  .shop .colors{display:flex;flex-direction:column;gap:8px;margin-left:auto}
+  button.colorchip{
+    padding:2px;
+    border:3px solid transparent;
+    border-radius:14px;
+    background:transparent;
+    cursor:pointer;
+    line-height:0;
+  }
+  button.colorchip canvas{width:56px;height:56px;border-radius:9px;display:block}
+  button.colorchip[aria-pressed="true"]{border-color:var(--ink)}
+  button.colorchip:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+  .opt-label{
+    font-size:10px;font-weight:700;
+    letter-spacing:.18em;text-transform:uppercase;
+    margin:0 0 7px;opacity:.75;
+  }
+  .chips{margin-bottom:14px}
+  button.chip{
+    font-family:'Archivo',sans-serif;
+    font-weight:700;font-size:12px;
+    letter-spacing:.03em;
+    padding:8px 13px;
+    border-radius:999px;
+    border:2px solid var(--ink);
+    background:transparent;color:var(--ink);
+    cursor:pointer;
+  }
+  button.chip[aria-pressed="true"]{background:var(--ink);color:var(--bone)}
+  button.chip:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+  .slider-row{
+    display:grid;
+    grid-template-columns:76px 1fr;
+    align-items:center;
+    gap:12px;
+    margin-bottom:6px;
+  }
+  .slider-row label{
+    font-size:10px;font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;
+    opacity:.75;
+  }
+  input[type=range]{
+    width:100%;
+    height:30px;
+    accent-color:var(--ink);
+    cursor:pointer;
+  }
+  input[type=range]:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+  button.action{
+    font-family:'Archivo',sans-serif;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:.04em;
+    padding:11px 16px;
+    border-radius:999px;
+    border:2px solid var(--ink);
+    background:transparent;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  button.action.primary{background:var(--ink);color:var(--bone)}
+  button.action:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+  @media (hover:hover){
+    button.action:hover{transform:translateY(-1px)}
+  }
+
+  .pool{margin-top:34px}
+  .pool-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:8px;
+    margin-bottom:14px;
+  }
+  .pool-head h2{
+    font-family:'Archivo Black',sans-serif;
+    font-size:20px;
+  }
+  .pool-head .count{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+  .pool-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(64px,1fr));
+    gap:10px;
+    min-height:74px;
+  }
+  .pool-grid canvas{width:100%;aspect-ratio:1/1;display:block}
+  .empty{
+    grid-column:1/-1;
+    font-size:13px;
+    opacity:.55;
+    padding:18px 0;
+  }
+  .clear{
+    background:none;border:none;
+    font-family:'Archivo',sans-serif;
+    font-size:11px;font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;
+    text-decoration:underline;
+    cursor:pointer;color:var(--ink);
+    margin-top:14px;
+    padding:4px 0;
+  }
+  .clear:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+  footer{
+    margin-top:44px;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.02em;
+    text-align:center;
+    line-height:1.6;
+  }
+  footer .formula{
+    font-family:'Archivo Black',sans-serif;
+    font-size:15px;
+    display:block;
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow"><span>People Like Us</span><span>Dot Maker · Prototype</span></div>
+  <h1>Make your dot.</h1>
+  <p class="sub">Drag the edge to pinch it. Push it in somewhere, it comes out somewhere else — <b>the area never changes.</b></p>
+
+  <div class="stage">
+    <canvas id="dot" aria-label="Your dot. Drag near the edge to reshape it."></canvas>
+    <span class="hint">Drag the edge</span>
+    <span class="badge">Area = 100% · always</span>
+  </div>
+
+  <div class="row swatches" role="group" aria-label="Pick a color">
+    <button class="swatch" data-c="#FF3D8B" style="background:#FF3D8B" aria-label="Shock Pink" aria-pressed="true"></button>
+    <button class="swatch" data-c="#FF4A17" style="background:#FF4A17" aria-label="Ember" aria-pressed="false"></button>
+    <button class="swatch" data-c="#C6FF33" style="background:#C6FF33" aria-label="Acid" aria-pressed="false"></button>
+    <button class="swatch" data-c="#1E3AFF" style="background:#1E3AFF" aria-label="Volt Blue" aria-pressed="false"></button>
+    <button class="swatch" data-c="#9D3CFF" style="background:#9D3CFF" aria-label="Rave" aria-pressed="false"></button>
+    <button class="swatch" data-c="#29F0C8" style="background:#29F0C8" aria-label="Fizz" aria-pressed="false"></button>
+    <button class="swatch" data-c="#C4802F" style="background:#C4802F" aria-label="Toffee" aria-pressed="false"></button>
+    <button class="swatch" data-c="#FFC300" style="background:#FFC300" aria-label="Yolk" aria-pressed="false"></button>
+    <button class="swatch" data-c="#19C5FF" style="background:#19C5FF" aria-label="Pool" aria-pressed="false"></button>
+    <button class="swatch" data-c="#E62144" style="background:#E62144" aria-label="Cherry" aria-pressed="false"></button>
+  </div>
+
+  <div class="chips" id="eyeChips">
+    <p class="opt-label">Eyes</p>
+    <div class="row" role="group" aria-label="Eye style">
+      <button class="chip" data-eye="none" aria-pressed="true">None</button>
+      <button class="chip" data-eye="googly" aria-pressed="false">Googly</button>
+      <button class="chip" data-eye="cyclops" aria-pressed="false">Cyclops</button>
+    </div>
+  </div>
+
+  <div class="chips" id="eyeCtrls" hidden>
+    <div class="slider-row">
+      <label for="sx">Position</label>
+      <input type="range" id="sx" min="-100" max="100" value="0" aria-label="Eye horizontal position">
+    </div>
+    <div class="slider-row">
+      <label for="sy">Height</label>
+      <input type="range" id="sy" min="-100" max="100" value="22" aria-label="Eye vertical position">
+    </div>
+    <div class="slider-row">
+      <label for="ss">Size</label>
+      <input type="range" id="ss" min="40" max="200" value="100" aria-label="Eye size">
+    </div>
+    <div class="slider-row">
+      <label for="sg">Gap</label>
+      <input type="range" id="sg" min="40" max="200" value="100" aria-label="Eye spacing">
+    </div>
+  </div>
+
+  <div class="row" id="faceRow">
+    <button class="action" id="shuffle">Shuffle</button>
+    <button class="action" id="reset">Reset</button>
+    <button class="action primary" id="next">Dress up →</button>
+  </div>
+
+  <div id="dressCtrls" hidden>
+    <div class="chips">
+      <p class="opt-label">Outfit</p>
+      <div class="shop">
+        <div class="styles" role="group" aria-label="Outfit style">
+          <button class="chip" data-gs="tee" aria-pressed="true">Tee</button>
+          <button class="chip" data-gs="stripe" aria-pressed="false">Stripes</button>
+          <button class="chip" data-gs="suit" aria-pressed="false">Suit</button>
+          <button class="chip" data-gs="polka" aria-pressed="false">Polka</button>
+          <button class="chip" data-gs="hoodie" aria-pressed="false">Hoodie</button>
+        </div>
+        <div class="colors" id="colorBar" role="group" aria-label="Outfit color"></div>
+      </div>
+    </div>
+    <div class="chips">
+      <p class="opt-label">Background</p>
+      <div class="row" role="group" aria-label="Background">
+        <button class="chip" data-bgmode="black" aria-pressed="true">Black</button>
+        <button class="chip" data-bgmode="none" aria-pressed="false">None</button>
+      </div>
+    </div>
+    <div class="row">
+      <button class="action" id="back">← Face</button>
+      <button class="action" id="save">Save PNG</button>
+      <button class="action primary" id="join">Join the pool</button>
+    </div>
+  </div>
+
+  <section class="pool">
+    <div class="pool-head">
+      <h2>The pool</h2>
+      <span class="count" id="count">0 people</span>
+    </div>
+    <div class="pool-grid" id="grid">
+      <p class="empty" id="empty">No one here yet. Make a dot and join.</p>
+    </div>
+    <button class="clear" id="clear">Clear the pool</button>
+  </section>
+
+  <footer>
+    <span class="formula">People like you + people like me<br>= people like us</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const N = 96;
+  const TAU = Math.PI * 2;
+  const dA = TAU / N;
+  const A0 = 0.5 * N * Math.sin(dA); // area of unit circle polygon
+  const MIN_R = 0.32, MAX_R = 1.72;
+
+  const COLORS = {
+    pink:'#FF3D8B', ember:'#FF4A17', acid:'#C6FF33', blue:'#1E3AFF',
+    rave:'#9D3CFF', fizz:'#29F0C8', toffee:'#C4802F', yolk:'#FFC300',
+    pool:'#19C5FF', cherry:'#E62144'
+  };
+  let color = COLORS.pink;
+  let eyeStyle = 'none';
+  let eyeX = 0;        // -1 … 1, left to right
+  let eyeY = -0.22;    // negative = up
+  let eyeSize = 1;
+  let eyeGap = 1;
+  const curEye = () => eyeStyle === 'none' ? null :
+    ({ s: eyeStyle, x: eyeX, y: eyeY, sz: eyeSize, g: eyeGap });
+  let radii = new Float64Array(N).fill(1);
+  let pool = [];
+
+  // --- portrait step state ---
+  // sorbet tones: clothes + accessory accents only. Muted on purpose —
+  // neon belongs to the face (the person), the outfit never upstages it.
+  const SORBET = { pink:'#FFB3D1', peach:'#FFC9A3', lime:'#EEFA9E', peri:'#AEB8FF', lilac:'#D9B8FF', mint:'#B2F5DC' };
+  // everyday neutrals — warm greys for garments that should read casual, not candy
+  const GREY = { suit:'#A39E95', hood:'#B6B1A8', pocket:'#9C978E' };
+  const INKC = '#141414', BONEC = '#F4EEE2';
+  // wardrobe: style → colorways (base + pattern/pocket accents), shop-style
+  const GARMENTS = {
+    tee:    { colors: {
+      peri:{ base:SORBET.peri }, pink:{ base:SORBET.pink },
+      mint:{ base:SORBET.mint }, grey:{ base:GREY.hood }
+    } },
+    stripe: { colors: {
+      ink: { base:BONEC, pat:INKC },  peri:{ base:SORBET.peri, pat:BONEC },
+      pink:{ base:SORBET.pink, pat:BONEC }, mint:{ base:SORBET.mint, pat:INKC }
+    } },
+    suit:   { colors: {
+      grey:{ base:GREY.suit }, peri:{ base:SORBET.peri }, lilac:{ base:SORBET.lilac }
+    } },
+    polka:  { colors: {
+      pink:{ base:SORBET.pink, pat:BONEC }, bone:{ base:BONEC, pat:INKC },
+      peri:{ base:SORBET.peri, pat:BONEC }, mint:{ base:SORBET.mint, pat:INKC }
+    } },
+    hoodie: { colors: {
+      grey:{ base:GREY.hood, pocket:GREY.pocket },
+      peri:{ base:SORBET.peri, pocket:'#8E9BE8' },
+      pink:{ base:SORBET.pink, pocket:'#EC93BC' }
+    } }
+  };
+  let step = 'face';       // 'face' | 'dress'
+  let garmentStyle = 'tee';
+  let garmentColor = 'peri';
+  const gid = () => garmentStyle + ':' + garmentColor;
+  let hasBg = true;        // black canvas background; false = transparent (PNG exports with no background)
+  const FACE = { x:0.5, y:0.42, r:0.27 };  // face placement in portrait step — face dominates, torso is backdrop
+
+  const cv = document.getElementById('dot');
+  const ctx = cv.getContext('2d');
+  let cw = 0, cx = 0, cy = 0, R = 0;
+
+  function resize(){
+    const rect = cv.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cw = rect.width;
+    cv.width = Math.round(cw * dpr);
+    cv.height = Math.round(cw * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cx = cw / 2; cy = cw / 2;
+    R = cw * 0.30;
+    draw();
+  }
+
+  function polyArea(r){
+    let s = 0;
+    for (let i = 0; i < N; i++) s += r[i] * r[(i + 1) % N];
+    return 0.5 * Math.sin(dA) * s;
+  }
+
+  function normalize(r){
+    const k = Math.sqrt(A0 / polyArea(r));
+    for (let i = 0; i < N; i++) r[i] = Math.min(MAX_R, Math.max(MIN_R, r[i] * k));
+  }
+
+  function smooth(r, passes = 1){
+    for (let p = 0; p < passes; p++){
+      const prev = Float64Array.from(r);
+      for (let i = 0; i < N; i++){
+        r[i] = prev[i] * 0.86 + 0.07 * (prev[(i - 1 + N) % N] + prev[(i + 1) % N]);
+      }
+    }
+  }
+
+  function pinch(r, angle, target, sigma, strength){
+    target = Math.min(MAX_R, Math.max(MIN_R, target));
+    for (let i = 0; i < N; i++){
+      let d = Math.abs(i * dA - angle);
+      d = Math.min(d, TAU - d);
+      const w = Math.exp(-(d * d) / (2 * sigma * sigma));
+      r[i] += (target - r[i]) * w * strength;
+    }
+    smooth(r, 1);
+    normalize(r);
+  }
+
+  function tracePath(c, r, x0, y0, scale){
+    const pts = [];
+    for (let i = 0; i < N; i++){
+      const a = i * dA;
+      pts.push([x0 + Math.cos(a) * r[i] * scale, y0 + Math.sin(a) * r[i] * scale]);
+    }
+    c.beginPath();
+    const mx = (pts[N - 1][0] + pts[0][0]) / 2;
+    const my = (pts[N - 1][1] + pts[0][1]) / 2;
+    c.moveTo(mx, my);
+    for (let i = 0; i < N; i++){
+      const p = pts[i], q = pts[(i + 1) % N];
+      c.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) / 2, (p[1] + q[1]) / 2);
+    }
+    c.closePath();
+  }
+
+  function rAt(r, angle){
+    angle = ((angle % TAU) + TAU) % TAU;
+    const f = angle / dA;
+    const i = Math.floor(f) % N;
+    const t = f - Math.floor(f);
+    return r[i] * (1 - t) + r[(i + 1) % N] * t;
+  }
+
+  function drawEyes(c, r, x0, y0, scale, e){
+    if (!e || !e.s || e.s === 'none') return;
+    const INK = '#141414', BONE = '#F4EEE2';
+    const ex = e.x || 0, ey = e.y || 0;
+    const sz = e.sz || 1, g = e.g || 1;
+    const rr = rAt(r, ex < 0 ? Math.PI : 0);
+    const edge = Math.max(0.55, Math.min(1, rr));
+    const k = 1 + Math.abs(ex) * (edge - 1);   // eyes shrink toward a pinched-in side
+    const u = scale * k;
+    const ax = x0 + ex * 0.55 * rr * scale;
+    const ay = y0 + ey * 0.45 * u;
+    const s = 0.085 * u * sz;
+    const dot = (x, y, rad, col) => {
+      c.beginPath(); c.arc(x, y, rad, 0, TAU);
+      c.fillStyle = col; c.fill();
+    };
+    if (e.s === 'googly'){
+      dot(ax - 0.16 * u * g, ay, s * 1.7, BONE);
+      dot(ax + 0.16 * u * g, ay, s * 1.7, BONE);
+      dot(ax - 0.16 * u * g, ay + 0.4 * s, s * 0.8, INK);
+      dot(ax + 0.16 * u * g, ay + 0.4 * s, s * 0.8, INK);
+    } else if (e.s === 'cyclops'){
+      dot(ax, ay, s * 2.3, BONE);
+      dot(ax, ay + 0.5 * s, s * 1.05, INK);
+    }
+  }
+
+  // fixed torso silhouette — never moves, never deforms (clothes are
+  // just different patterns inside the same area)
+  function torsoPath(c, S){
+    // wide low shoulders — always behind the face, never deforms
+    c.beginPath();
+    c.moveTo(0.04 * S, S + 2);
+    c.quadraticCurveTo(0.13 * S, 0.66 * S, 0.44 * S, 0.63 * S);
+    c.quadraticCurveTo(0.50 * S, 0.618 * S, 0.56 * S, 0.63 * S);
+    c.quadraticCurveTo(0.87 * S, 0.66 * S, 0.96 * S, S + 2);
+    c.closePath();
+  }
+
+  // legacy garment ids (older pool entries) → [style, colorway]
+  function parseGarment(g){
+    if (g && g.includes(':')){
+      const [s, k] = g.split(':');
+      if (GARMENTS[s] && GARMENTS[s].colors[k]) return [s, k];
+    }
+    const LEGACY = {
+      'tee':['tee','peri'], 'turtle':['tee','peri'],
+      'stripe':['stripe','ink'], 'stripe-ink':['stripe','ink'],
+      'stripe-peri':['stripe','peri'], 'stripe-pink':['stripe','pink'],
+      'suit':['suit','grey'],
+      'polka':['polka','pink'], 'polka-pink':['polka','pink'],
+      'polka-bone':['polka','bone'], 'polka-peri':['polka','peri'],
+      'hoodie':['hoodie','grey']
+    };
+    return LEGACY[g] || ['tee', 'peri'];
+  }
+
+  function drawGarment(c, S, style, colKey){
+    const spec = GARMENTS[style].colors[colKey];
+    c.save();
+    torsoPath(c, S); c.clip();
+    torsoPath(c, S); c.fillStyle = spec.base; c.fill();
+    if (style === 'tee'){
+      c.beginPath(); c.arc(0.5 * S, 0.72 * S, 0.10 * S, 0, TAU);
+      c.fillStyle = BONEC; c.fill();
+    } else if (style === 'stripe'){
+      c.fillStyle = spec.pat;
+      for (let y = 0.68; y < 1.02; y += 0.105) c.fillRect(0.02 * S, y * S, 0.96 * S, 0.036 * S);
+    } else if (style === 'suit'){
+      c.fillStyle = BONEC;
+      c.beginPath(); c.moveTo(0.44 * S, 0.66 * S); c.lineTo(0.56 * S, 0.66 * S);
+      c.lineTo(0.67 * S, 1.05 * S); c.lineTo(0.33 * S, 1.05 * S); c.closePath(); c.fill();
+      c.fillStyle = INKC;
+      for (const y of [0.80, 0.89, 0.98]){
+        c.beginPath(); c.arc(0.5 * S, y * S, 0.013 * S, 0, TAU); c.fill();
+      }
+    } else if (style === 'polka'){
+      c.fillStyle = spec.pat;
+      for (let row = 0; row < 4; row++){
+        const y = 0.70 + row * 0.09;
+        for (let x = 0.08 + (row % 2) * 0.055; x < 0.97; x += 0.11){
+          c.beginPath(); c.arc(x * S, y * S, 0.021 * S, 0, TAU); c.fill();
+        }
+      }
+    } else if (style === 'hoodie'){
+      c.beginPath(); c.arc(0.5 * S, 0.71 * S, 0.135 * S, 0, TAU);
+      c.fillStyle = BONEC; c.fill();
+      c.beginPath(); c.arc(0.5 * S, 0.66 * S, 0.135 * S, 0, TAU);
+      c.fillStyle = spec.base; c.fill();
+      c.fillStyle = spec.pocket;
+      c.beginPath(); c.roundRect(0.36 * S, 0.84 * S, 0.28 * S, 0.14 * S, 0.035 * S); c.fill();
+    }
+    c.restore();
+  }
+
+  function drawPortrait(c, S, st){
+    const [gs, gc] = parseGarment(st.g);
+    drawGarment(c, S, gs, gc);
+    tracePath(c, st.r, FACE.x * S, FACE.y * S, FACE.r * S);
+    c.fillStyle = st.c;
+    c.fill();
+    drawEyes(c, st.r, FACE.x * S, FACE.y * S, FACE.r * S, st.e);
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, cw, cw);
+    if (hasBg){
+      ctx.fillStyle = '#141414';
+      ctx.fillRect(0, 0, cw, cw);
+    }
+    if (step === 'face'){
+      tracePath(ctx, radii, cx, cy, R);
+      ctx.fillStyle = color;
+      ctx.fill();
+      drawEyes(ctx, radii, cx, cy, R, curEye());
+    } else {
+      drawPortrait(ctx, cw, { r: radii, c: color, e: curEye(), g: gid() });
+    }
+  }
+
+  // --- pointer interaction (face step only: drag pinches the dot) ---
+  let dragging = false;
+  function toLocal(e){
+    const rect = cv.getBoundingClientRect();
+    return [e.clientX - rect.left - cx, e.clientY - rect.top - cy];
+  }
+  cv.addEventListener('pointerdown', e => {
+    if (step !== 'face') return;
+    dragging = true;
+    cv.setPointerCapture(e.pointerId);
+    applyDrag(e);
+  });
+  cv.addEventListener('pointermove', e => { if (step === 'face' && dragging) applyDrag(e); });
+  cv.addEventListener('pointerup', () => dragging = false);
+  cv.addEventListener('pointercancel', () => dragging = false);
+
+  function applyDrag(e){
+    const [x, y] = toLocal(e);
+    const angle = (Math.atan2(y, x) + TAU) % TAU;
+    const dist = Math.hypot(x, y) / R;
+    pinch(radii, angle, dist, 0.42, 0.45);
+    draw();
+  }
+
+  // --- controls ---
+  document.querySelectorAll('.swatch').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.swatch').forEach(s => s.setAttribute('aria-pressed', 'false'));
+      b.setAttribute('aria-pressed', 'true');
+      color = b.dataset.c;
+      draw();
+    });
+  });
+
+  const eyeCtrls = document.getElementById('eyeCtrls');
+  document.querySelectorAll('[data-eye]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-eye]').forEach(x => x.setAttribute('aria-pressed', 'false'));
+      b.setAttribute('aria-pressed', 'true');
+      eyeStyle = b.dataset.eye;
+      eyeCtrls.hidden = (eyeStyle === 'none');
+      draw();
+    });
+  });
+  const bindSlider = (id, fn) => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => { fn(parseFloat(el.value)); draw(); });
+  };
+  bindSlider('sx', v => eyeX = v / 100);
+  bindSlider('sy', v => eyeY = -v / 100);
+  bindSlider('ss', v => eyeSize = v / 100);
+  bindSlider('sg', v => eyeGap = v / 100);
+
+  // --- step switching ---
+  const swatchesEl = document.querySelector('.swatches');
+  const eyeChips = document.getElementById('eyeChips');
+  const faceRow = document.getElementById('faceRow');
+  const dressCtrls = document.getElementById('dressCtrls');
+  const hintEl = document.querySelector('.hint');
+  function setStep(s){
+    step = s;
+    const dress = (s === 'dress');
+    swatchesEl.hidden = dress;
+    eyeChips.hidden = dress;
+    eyeCtrls.hidden = dress || (eyeStyle === 'none');
+    faceRow.hidden = dress;
+    dressCtrls.hidden = !dress;
+    hintEl.textContent = dress ? 'Pick an outfit' : 'Drag the edge';
+    draw();
+  }
+  document.getElementById('next').addEventListener('click', () => setStep('dress'));
+  document.getElementById('back').addEventListener('click', () => setStep('face'));
+
+  // shop-style outfit picker: style chips on the left, rendered colorway
+  // previews on the right
+  const colorBar = document.getElementById('colorBar');
+  function renderColorBar(){
+    colorBar.innerHTML = '';
+    for (const key of Object.keys(GARMENTS[garmentStyle].colors)){
+      const b = document.createElement('button');
+      b.className = 'colorchip';
+      b.setAttribute('aria-label', garmentStyle + ' — ' + key);
+      b.setAttribute('aria-pressed', String(key === garmentColor));
+      const t = 112, mc = document.createElement('canvas');
+      mc.width = t; mc.height = t;
+      const c = mc.getContext('2d');
+      c.fillStyle = INKC;
+      c.fillRect(0, 0, t, t);
+      // crop to the chest area so the swatch reads like a product photo
+      const S = t / 0.42;
+      c.save();
+      c.translate(-0.29 * S, -0.58 * S);
+      drawGarment(c, S, garmentStyle, key);
+      c.restore();
+      b.appendChild(mc);
+      b.addEventListener('click', () => {
+        garmentColor = key;
+        colorBar.querySelectorAll('.colorchip').forEach(x => x.setAttribute('aria-pressed', 'false'));
+        b.setAttribute('aria-pressed', 'true');
+        draw();
+      });
+      colorBar.appendChild(b);
+    }
+  }
+  document.querySelectorAll('[data-gs]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-gs]').forEach(x => x.setAttribute('aria-pressed', 'false'));
+      b.setAttribute('aria-pressed', 'true');
+      garmentStyle = b.dataset.gs;
+      garmentColor = Object.keys(GARMENTS[garmentStyle].colors)[0];
+      renderColorBar();
+      draw();
+    });
+  });
+  const syncOutfitChips = () => {
+    document.querySelectorAll('[data-gs]').forEach(x =>
+      x.setAttribute('aria-pressed', String(x.dataset.gs === garmentStyle)));
+    renderColorBar();
+  };
+
+  const stageEl = document.querySelector('.stage');
+  document.querySelectorAll('[data-bgmode]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-bgmode]').forEach(x => x.setAttribute('aria-pressed', 'false'));
+      b.setAttribute('aria-pressed', 'true');
+      hasBg = (b.dataset.bgmode === 'black');
+      stageEl.classList.toggle('nobg', !hasBg);
+      draw();
+    });
+  });
+
+  document.getElementById('reset').addEventListener('click', () => {
+    radii.fill(1);
+    draw();
+  });
+
+  document.getElementById('shuffle').addEventListener('click', () => {
+    radii.fill(1);
+    const n = 3 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < n; i++){
+      pinch(radii,
+        Math.random() * TAU,
+        0.45 + Math.random() * 1.15,
+        0.28 + Math.random() * 0.45,
+        0.9);
+    }
+    smooth(radii, 1);
+    normalize(radii);
+    draw();
+  });
+
+  document.getElementById('save').addEventListener('click', () => {
+    const s = 800, out = document.createElement('canvas');
+    out.width = s; out.height = s;
+    const c = out.getContext('2d');
+    if (hasBg){
+      c.fillStyle = '#141414';
+      c.fillRect(0, 0, s, s);
+    }
+    drawPortrait(c, s, { r: radii, c: color, e: curEye(), g: gid() });
+    const a = document.createElement('a');
+    a.download = 'plu-dot.png';
+    a.href = out.toDataURL('image/png');
+    a.click();
+  });
+
+  // --- pool ---
+  const grid = document.getElementById('grid');
+  const countEl = document.getElementById('count');
+  const emptyEl = document.getElementById('empty');
+  const KEY = 'plu-dot-pool';
+
+  function renderPool(){
+    grid.querySelectorAll('canvas').forEach(n => n.remove());
+    emptyEl.style.display = pool.length ? 'none' : 'block';
+    countEl.textContent = pool.length + (pool.length === 1 ? ' person' : ' people');
+    pool.forEach(d => {
+      const s = 128, mc = document.createElement('canvas');
+      mc.width = s; mc.height = s;
+      const c = mc.getContext('2d');
+      if (d.g){
+        // portrait entry: little ID photo (Ink card only if it has a background)
+        if (d.bg !== false){
+          c.fillStyle = '#141414';
+          c.fillRect(0, 0, s, s);
+        }
+        drawPortrait(c, s, { r: d.r, c: d.c, e: d.e, g: d.g });
+      } else {
+        // legacy face-only entry
+        tracePath(c, d.r, s / 2, s / 2, s * 0.34);
+        c.fillStyle = d.c;
+        c.fill();
+        if (d.e) drawEyes(c, d.r, s / 2, s / 2, s * 0.34, d.e);
+      }
+      grid.appendChild(mc);
+    });
+  }
+
+  function savePool(){
+    try {
+      const slim = pool.map(d => ({ c: d.c, e: d.e, g: d.g || null, bg: d.bg !== false, r: Array.from(d.r, v => Math.round(v * 1000) / 1000) }));
+      localStorage.setItem(KEY, JSON.stringify(slim));
+    } catch (e) { /* in-memory only */ }
+  }
+
+  function loadPool(){
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw){
+        pool = JSON.parse(raw).map(d => {
+          let e = d.e || null;
+          if (e && e.p !== undefined){   // migrate old left/center/right entries
+            e = { s: e.s, x: e.p === 'left' ? -0.73 : e.p === 'right' ? 0.73 : 0, y: -0.22, sz: 1, g: 1 };
+          }
+          return { c: d.c, e, g: d.g || null, bg: d.bg !== false, r: Float64Array.from(d.r) };
+        });
+      }
+    } catch (e) { pool = []; }
+    renderPool();
+  }
+
+  document.getElementById('join').addEventListener('click', () => {
+    pool.push({
+      c: color,
+      e: curEye(),
+      g: gid(),
+      bg: hasBg,
+      r: Float64Array.from(radii)
+    });
+    renderPool();
+    savePool();
+    radii.fill(1);
+    garmentStyle = 'tee';
+    garmentColor = 'peri';
+    syncOutfitChips();
+    setStep('face');
+  });
+
+  document.getElementById('clear').addEventListener('click', () => {
+    pool = [];
+    renderPool();
+    savePool();
+  });
+
+  window.addEventListener('resize', resize);
+  resize();
+  renderColorBar();
+  loadPool();
+})();
+</script>
+</body>
+</html>
