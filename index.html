@@ -296,6 +296,7 @@
   <div class="row" id="faceRow">
     <button class="action" id="shuffle">Shuffle</button>
     <button class="action" id="reset">Reset</button>
+    <button class="action" id="saveFace">Save PNG</button>
     <button class="action primary" id="next">Dress up →</button>
   </div>
 
@@ -748,7 +749,7 @@
     draw();
   });
 
-  document.getElementById('save').addEventListener('click', () => {
+  function exportPNG(drawFn, name){
     const s = 800, out = document.createElement('canvas');
     out.width = s; out.height = s;
     const c = out.getContext('2d');
@@ -756,11 +757,24 @@
       c.fillStyle = '#141414';
       c.fillRect(0, 0, s, s);
     }
-    drawPortrait(c, s, { r: radii, c: color, e: curEye(), g: gid() });
+    drawFn(c, s);
     const a = document.createElement('a');
-    a.download = 'plu-dot.png';
+    a.download = name;
     a.href = out.toDataURL('image/png');
     a.click();
+  }
+  // dress step: full portrait
+  document.getElementById('save').addEventListener('click', () => {
+    exportPNG((c, s) => drawPortrait(c, s, { r: radii, c: color, e: curEye(), g: gid() }), 'plu-dot.png');
+  });
+  // face step: skip the dress-up, export the dot as-is
+  document.getElementById('saveFace').addEventListener('click', () => {
+    exportPNG((c, s) => {
+      tracePath(c, radii, s / 2, s / 2, s * 0.30);
+      c.fillStyle = color;
+      c.fill();
+      drawEyes(c, radii, s / 2, s / 2, s * 0.30, curEye());
+    }, 'plu-dot.png');
   });
 
   // --- pool ---
