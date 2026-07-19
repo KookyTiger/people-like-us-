@@ -125,6 +125,7 @@
   button.colorchip canvas{width:56px;height:56px;border-radius:9px;display:block}
   button.colorchip[aria-pressed="true"]{border-color:var(--ink)}
   button.colorchip:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  button.colorchip[disabled]{opacity:.22;cursor:not-allowed}
 
   .opt-label{
     font-size:10px;font-weight:700;
@@ -315,6 +316,18 @@
       </div>
     </div>
     <div class="chips">
+      <p class="opt-label">Hair</p>
+      <div class="row" role="group" aria-label="Hair type">
+        <button class="chip" data-ht="none" aria-pressed="true">None</button>
+        <button class="chip" data-ht="girl" aria-pressed="false">Girl</button>
+        <button class="chip" data-ht="boy" aria-pressed="false">Boy</button>
+      </div>
+      <div class="shop" id="hairShop" hidden style="margin-top:10px">
+        <div class="styles" id="hairStyles" role="group" aria-label="Hairstyle"></div>
+        <div class="colors" id="hairColorBar" role="group" aria-label="Hair color"></div>
+      </div>
+    </div>
+    <div class="chips">
       <p class="opt-label">Background</p>
       <div class="row" role="group" aria-label="Background">
         <button class="chip" data-bgmode="black" aria-pressed="true">Black</button>
@@ -398,10 +411,22 @@
       pink:{ base:SORBET.pink, pocket:'#EC93BC' }
     } }
   };
+  // hair: naturals + a few sorbet dye-jobs. Never the face neons, so hair
+  // can't collide with the person by construction; a live contrast gate
+  // additionally greys out anything too close to the current face color.
+  const HAIR_COLORS = {
+    black:'#4A443E', brown:'#6E4A26', caramel:'#A9722E', blonde:'#E9C46A',
+    grey:'#A8A29A', bone:'#F4EEE2',
+    peri:SORBET.peri, pink:SORBET.pink, lilac:SORBET.lilac
+  };
   let step = 'face';       // 'face' | 'dress'
   let garmentStyle = 'tee';
   let garmentColor = 'peri';
   const gid = () => garmentStyle + ':' + garmentColor;
+  let hairType = 'none';   // 'none' | 'girl' | 'boy'
+  let hairStyle = null;
+  let hairColor = 'black';
+  const hid = () => hairType === 'none' ? null : hairType + ':' + hairStyle + ':' + hairColor;
   let hasBg = true;        // black canvas background; false = transparent (PNG exports with no background)
   const FACE = { x:0.5, y:0.42, r:0.27 };  // face placement in portrait step — face dominates, torso is backdrop
 
@@ -573,13 +598,67 @@
     c.restore();
   }
 
+  // --- hair: geometric, abstract, FIXED positions anchored to the nominal
+  // face circle (0.5, 0.42, r 0.27) — it never follows the deformation.
+  // Two layers: back (behind the face, over the garment) + front (fringe, on top).
+  const hDot = (c, S, col, x, y, r) => {
+    c.beginPath(); c.arc(x * S, y * S, r * S, 0, TAU);
+    c.fillStyle = col; c.fill();
+  };
+  const hRect = (c, S, col, x, y, w, h, rad) => {
+    c.fillStyle = col;
+    c.beginPath(); c.roundRect(x * S, y * S, w * S, h * S, rad * S); c.fill();
+  };
+  // fringe cap: circle slightly bigger than the nominal face, clipped to a band
+  const hCap = (c, S, col, rr, cut, x0 = 0, x1 = 1) => {
+    c.save();
+    c.beginPath(); c.rect(x0 * S, 0, (x1 - x0) * S, cut * S); c.clip();
+    hDot(c, S, col, 0.5, 0.42, rr);
+    c.restore();
+  };
+  const HAIR = {
+    girl: {
+      bob:      { label:'Bob',        back:(c,S,k)=>{ hDot(c,S,k,0.5,0.40,0.31); hRect(c,S,k,0.19,0.36,0.62,0.22,0.10); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.30) },
+      long:     { label:'Long',       back:(c,S,k)=>{ hRect(c,S,k,0.22,0.32,0.56,0.55,0.16); hDot(c,S,k,0.5,0.36,0.31); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.30) },
+      pigtails: { label:'Pigtails',   back:(c,S,k)=>{ hDot(c,S,k,0.5,0.36,0.30); hDot(c,S,k,0.15,0.50,0.10); hDot(c,S,k,0.85,0.50,0.10); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.28) },
+      buns:     { label:'Space buns', back:(c,S,k)=>{ hDot(c,S,k,0.24,0.15,0.09); hDot(c,S,k,0.76,0.15,0.09); hDot(c,S,k,0.5,0.38,0.295); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.27) },
+      pony:     { label:'Ponytail',   back:(c,S,k)=>{ hDot(c,S,k,0.5,0.36,0.295); hDot(c,S,k,0.80,0.15,0.075); hRect(c,S,k,0.755,0.15,0.09,0.36,0.045); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.27) },
+      afro:     { label:'Afro',       back:(c,S,k)=>{ hDot(c,S,k,0.5,0.32,0.33); hDot(c,S,k,0.30,0.18,0.15); hDot(c,S,k,0.70,0.18,0.15); hDot(c,S,k,0.5,0.13,0.16); hDot(c,S,k,0.17,0.34,0.13); hDot(c,S,k,0.83,0.34,0.13); }, front:null },
+      braids:   { label:'Braids',     back:(c,S,k)=>{ hDot(c,S,k,0.5,0.36,0.30); hRect(c,S,k,0.15,0.34,0.11,0.40,0.055); hRect(c,S,k,0.74,0.34,0.11,0.40,0.055); hDot(c,S,k,0.205,0.77,0.04); hDot(c,S,k,0.795,0.77,0.04); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.28) },
+      hime:     { label:'Hime',       back:(c,S,k)=>{ hDot(c,S,k,0.5,0.36,0.30); hRect(c,S,k,0.185,0.32,0.13,0.32,0.065); hRect(c,S,k,0.685,0.32,0.13,0.32,0.065); }, front:(c,S,k)=>hCap(c,S,k,0.29,0.335) },
+      curls:    { label:'Curls',      back:(c,S,k)=>{ hDot(c,S,k,0.24,0.22,0.10); hDot(c,S,k,0.37,0.14,0.10); hDot(c,S,k,0.52,0.12,0.10); hDot(c,S,k,0.66,0.15,0.10); hDot(c,S,k,0.78,0.24,0.10); hDot(c,S,k,0.17,0.34,0.09); hDot(c,S,k,0.84,0.35,0.09); }, front:null },
+      topbun:   { label:'Top bun',    back:(c,S,k)=>{ hDot(c,S,k,0.5,0.11,0.10); hDot(c,S,k,0.5,0.37,0.295); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.26) }
+    },
+    boy: {
+      buzz:    { label:'Buzz',      back:null, front:(c,S,k)=>hCap(c,S,k,0.28,0.24) },
+      crew:    { label:'Crew',      back:null, front:(c,S,k)=>hCap(c,S,k,0.285,0.285) },
+      part:    { label:'Side part', back:null, front:(c,S,k)=>{ hCap(c,S,k,0.285,0.24); hCap(c,S,k,0.285,0.31,0,0.60); } },
+      spiky:   { label:'Spiky',     back:null, front:(c,S,k)=>{ hCap(c,S,k,0.28,0.25); hDot(c,S,k,0.34,0.14,0.05); hDot(c,S,k,0.46,0.11,0.055); hDot(c,S,k,0.58,0.12,0.05); hDot(c,S,k,0.68,0.165,0.045); } },
+      manbun:  { label:'Man bun',   back:(c,S,k)=>hDot(c,S,k,0.5,0.115,0.075), front:(c,S,k)=>hCap(c,S,k,0.28,0.26) },
+      mohawk:  { label:'Mohawk',    back:null, front:(c,S,k)=>hRect(c,S,k,0.455,0.055,0.09,0.20,0.045) },
+      fro:     { label:'Fro',       back:null, front:(c,S,k)=>{ hDot(c,S,k,0.36,0.175,0.12); hDot(c,S,k,0.5,0.135,0.13); hDot(c,S,k,0.64,0.175,0.12); hCap(c,S,k,0.28,0.24); } },
+      bowl:    { label:'Bowl',      back:null, front:(c,S,k)=>hCap(c,S,k,0.295,0.345) },
+      curltop: { label:'Curl top',  back:null, front:(c,S,k)=>{ hDot(c,S,k,0.36,0.155,0.075); hDot(c,S,k,0.48,0.12,0.08); hDot(c,S,k,0.60,0.14,0.075); hDot(c,S,k,0.70,0.195,0.065); hCap(c,S,k,0.28,0.23); } },
+      mullet:  { label:'Mullet',    back:(c,S,k)=>hRect(c,S,k,0.28,0.50,0.44,0.22,0.10), front:(c,S,k)=>hCap(c,S,k,0.285,0.27) }
+    }
+  };
+  function parseHair(h){
+    if (!h) return null;
+    const [t, s, k] = h.split(':');
+    if (HAIR[t] && HAIR[t][s] && HAIR_COLORS[k]) return { t, s, k };
+    return null;
+  }
+
   function drawPortrait(c, S, st){
     const [gs, gc] = parseGarment(st.g);
+    const hh = parseHair(st.h);
     drawGarment(c, S, gs, gc);
+    if (hh && HAIR[hh.t][hh.s].back) HAIR[hh.t][hh.s].back(c, S, HAIR_COLORS[hh.k]);
     tracePath(c, st.r, FACE.x * S, FACE.y * S, FACE.r * S);
     c.fillStyle = st.c;
     c.fill();
     drawEyes(c, st.r, FACE.x * S, FACE.y * S, FACE.r * S, st.e);
+    if (hh && HAIR[hh.t][hh.s].front) HAIR[hh.t][hh.s].front(c, S, HAIR_COLORS[hh.k]);
   }
 
   function draw(){
@@ -594,7 +673,7 @@
       ctx.fill();
       drawEyes(ctx, radii, cx, cy, R, curEye());
     } else {
-      drawPortrait(ctx, cw, { r: radii, c: color, e: curEye(), g: gid() });
+      drawPortrait(ctx, cw, { r: radii, c: color, e: curEye(), g: gid(), h: hid() });
     }
   }
 
@@ -666,6 +745,7 @@
     faceRow.hidden = dress;
     dressCtrls.hidden = !dress;
     hintEl.textContent = dress ? 'Pick an outfit' : 'Drag the edge';
+    if (dress) renderHairColors();   // re-gate hair colors against the face color picked in step 1
     draw();
   }
   document.getElementById('next').addEventListener('click', () => setStep('dress'));
@@ -718,6 +798,94 @@
     renderColorBar();
   };
 
+  // --- hair picker: type toggle → style chips (left) + rendered color
+  // previews (right), gated against the current face color ---
+  const hairShop = document.getElementById('hairShop');
+  const hairStylesEl = document.getElementById('hairStyles');
+  const hairColorBar = document.getElementById('hairColorBar');
+  function lum(hex){
+    const n = parseInt(hex.slice(1), 16);
+    const f = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(n >> 16 & 255) + 0.7152 * f(n >> 8 & 255) + 0.0722 * f(n & 255);
+  }
+  function contrastRatio(a, b){
+    const x = lum(a) + 0.05, y = lum(b) + 0.05;
+    return x > y ? x / y : y / x;
+  }
+  function renderHairStyles(){
+    hairStylesEl.innerHTML = '';
+    if (hairType === 'none') return;
+    for (const [key, def] of Object.entries(HAIR[hairType])){
+      const b = document.createElement('button');
+      b.className = 'chip';
+      b.textContent = def.label;
+      b.setAttribute('aria-pressed', String(key === hairStyle));
+      b.addEventListener('click', () => {
+        hairStyle = key;
+        hairStylesEl.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', 'false'));
+        b.setAttribute('aria-pressed', 'true');
+        renderHairColors();
+        draw();
+      });
+      hairStylesEl.appendChild(b);
+    }
+  }
+  function renderHairColors(){
+    hairColorBar.innerHTML = '';
+    if (hairType === 'none') return;
+    const blocked = k => contrastRatio(HAIR_COLORS[k], color) < 1.2;
+    if (blocked(hairColor)){
+      const ok = Object.keys(HAIR_COLORS).find(k => !blocked(k));
+      if (ok) hairColor = ok;
+    }
+    const def = HAIR[hairType][hairStyle];
+    for (const k of Object.keys(HAIR_COLORS)){
+      const b = document.createElement('button');
+      b.className = 'colorchip';
+      b.setAttribute('aria-label', 'hair ' + k);
+      b.setAttribute('aria-pressed', String(k === hairColor));
+      b.disabled = blocked(k);
+      const t = 112, mc = document.createElement('canvas');
+      mc.width = t; mc.height = t;
+      const c2 = mc.getContext('2d');
+      c2.fillStyle = INKC;
+      c2.fillRect(0, 0, t, t);
+      const S = t / 0.84;
+      c2.save();
+      c2.translate(-0.08 * S, -0.02 * S);
+      if (def.back) def.back(c2, S, HAIR_COLORS[k]);
+      c2.beginPath(); c2.arc(0.5 * S, 0.42 * S, FACE.r * S, 0, TAU);
+      c2.fillStyle = color; c2.fill();
+      if (def.front) def.front(c2, S, HAIR_COLORS[k]);
+      c2.restore();
+      b.appendChild(mc);
+      b.addEventListener('click', () => {
+        hairColor = k;
+        hairColorBar.querySelectorAll('.colorchip').forEach(x => x.setAttribute('aria-pressed', 'false'));
+        b.setAttribute('aria-pressed', 'true');
+        draw();
+      });
+      hairColorBar.appendChild(b);
+    }
+  }
+  function syncHairUI(){
+    document.querySelectorAll('[data-ht]').forEach(x =>
+      x.setAttribute('aria-pressed', String(x.dataset.ht === hairType)));
+    hairShop.hidden = (hairType === 'none');
+    renderHairStyles();
+    renderHairColors();
+  }
+  document.querySelectorAll('[data-ht]').forEach(b => {
+    b.addEventListener('click', () => {
+      hairType = b.dataset.ht;
+      if (hairType !== 'none' && (!hairStyle || !HAIR[hairType][hairStyle])){
+        hairStyle = Object.keys(HAIR[hairType])[0];
+      }
+      syncHairUI();
+      draw();
+    });
+  });
+
   const stageEl = document.querySelector('.stage');
   document.querySelectorAll('[data-bgmode]').forEach(b => {
     b.addEventListener('click', () => {
@@ -765,7 +933,7 @@
   }
   // dress step: full portrait
   document.getElementById('save').addEventListener('click', () => {
-    exportPNG((c, s) => drawPortrait(c, s, { r: radii, c: color, e: curEye(), g: gid() }), 'plu-dot.png');
+    exportPNG((c, s) => drawPortrait(c, s, { r: radii, c: color, e: curEye(), g: gid(), h: hid() }), 'plu-dot.png');
   });
   // face step: skip the dress-up, export the dot as-is
   document.getElementById('saveFace').addEventListener('click', () => {
@@ -797,7 +965,7 @@
           c.fillStyle = '#141414';
           c.fillRect(0, 0, s, s);
         }
-        drawPortrait(c, s, { r: d.r, c: d.c, e: d.e, g: d.g });
+        drawPortrait(c, s, { r: d.r, c: d.c, e: d.e, g: d.g, h: d.h });
       } else {
         // legacy face-only entry
         tracePath(c, d.r, s / 2, s / 2, s * 0.34);
@@ -811,7 +979,7 @@
 
   function savePool(){
     try {
-      const slim = pool.map(d => ({ c: d.c, e: d.e, g: d.g || null, bg: d.bg !== false, r: Array.from(d.r, v => Math.round(v * 1000) / 1000) }));
+      const slim = pool.map(d => ({ c: d.c, e: d.e, g: d.g || null, h: d.h || null, bg: d.bg !== false, r: Array.from(d.r, v => Math.round(v * 1000) / 1000) }));
       localStorage.setItem(KEY, JSON.stringify(slim));
     } catch (e) { /* in-memory only */ }
   }
@@ -825,7 +993,7 @@
           if (e && e.p !== undefined){   // migrate old left/center/right entries
             e = { s: e.s, x: e.p === 'left' ? -0.73 : e.p === 'right' ? 0.73 : 0, y: -0.22, sz: 1, g: 1 };
           }
-          return { c: d.c, e, g: d.g || null, bg: d.bg !== false, r: Float64Array.from(d.r) };
+          return { c: d.c, e, g: d.g || null, h: d.h || null, bg: d.bg !== false, r: Float64Array.from(d.r) };
         });
       }
     } catch (e) { pool = []; }
@@ -837,6 +1005,7 @@
       c: color,
       e: curEye(),
       g: gid(),
+      h: hid(),
       bg: hasBg,
       r: Float64Array.from(radii)
     });
@@ -846,6 +1015,8 @@
     garmentStyle = 'tee';
     garmentColor = 'peri';
     syncOutfitChips();
+    hairType = 'none';
+    syncHairUI();
     setStep('face');
   });
 
