@@ -653,12 +653,26 @@
     return [FACE.x + Math.cos(a) * (rr * FACE.r + out), FACE.y + Math.sin(a) * (rr * FACE.r + out)];
   };
   const TOPA = -Math.PI / 2;
+  // the eye centerline (S units) — same anchor math as drawEyes, so it tracks
+  // the sliders and the pinch-shrink. Fringes may never cut below this line:
+  // half-covered eyes are allowed (cute), fully covered are not.
+  let hairEyeY = Infinity;
+  function eyeLineY(fr, e){
+    if (!e) return Infinity;
+    const ex = e.x || 0;
+    const rr = rAt(fr, ex < 0 ? Math.PI : 0);
+    const edge = Math.max(0.55, Math.min(1, rr));
+    const k = 1 + Math.abs(ex) * (edge - 1);
+    return FACE.y + (e.y || 0) * 0.45 * FACE.r * k;
+  }
   // conformal fringe: grown face path clipped from the canvas top down to
   // (actual crown + depth). grow > 1 ⇒ the band is always fully covered.
+  // The cut is clamped to the eye centerline, with a minimum sliver of hair.
   const hCapC = (c, S, col, fr, depth, grow = 1.07, x0 = 0, x1 = 1) => {
     const topY = FACE.y - rAt(fr, TOPA) * FACE.r * grow;
+    const cut = Math.max(topY + 0.05, Math.min(topY + depth, hairEyeY));
     c.save();
-    c.beginPath(); c.rect(x0 * S, 0, (x1 - x0) * S, (topY + depth) * S); c.clip();
+    c.beginPath(); c.rect(x0 * S, 0, (x1 - x0) * S, cut * S); c.clip();
     tracePath(c, fr, FACE.x * S, FACE.y * S, FACE.r * grow * S);
     c.fillStyle = col; c.fill();
     c.restore();
@@ -705,7 +719,11 @@
     c.fillStyle = st.c;
     c.fill();
     drawEyes(c, st.r, FACE.x * S, FACE.y * S, FACE.r * S, st.e);
-    if (hh && HAIR[hh.t][hh.s].front) HAIR[hh.t][hh.s].front(c, S, HAIR_COLORS[hh.k], st.r);
+    if (hh && HAIR[hh.t][hh.s].front){
+      hairEyeY = eyeLineY(st.r, st.e);
+      HAIR[hh.t][hh.s].front(c, S, HAIR_COLORS[hh.k], st.r);
+      hairEyeY = Infinity;
+    }
   }
 
   function draw(){
