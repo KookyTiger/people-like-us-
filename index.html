@@ -633,9 +633,12 @@
     c.restore();
   }
 
-  // --- hair: geometric, abstract, FIXED positions anchored to the nominal
-  // face circle (0.5, 0.42, r 0.27) — it never follows the deformation.
-  // Two layers: back (behind the face, over the garment) + front (fringe, on top).
+  // --- hair: geometric + abstract. The fringe is CONFORMAL — the deformed
+  // face path scaled up ~7% and clipped to a top band, so it always covers
+  // the scalp by construction. Satellite pieces (buns, tails, braids, afro
+  // puffs) anchor to the actual deformed edge via rAt().
+  // Style fns take (c, S, hairColor, faceRadii).
+  const UNIT_R = new Float64Array(N).fill(1);
   const hDot = (c, S, col, x, y, r) => {
     c.beginPath(); c.arc(x * S, y * S, r * S, 0, TAU);
     c.fillStyle = col; c.fill();
@@ -644,37 +647,46 @@
     c.fillStyle = col;
     c.beginPath(); c.roundRect(x * S, y * S, w * S, h * S, rad * S); c.fill();
   };
-  // fringe cap: circle slightly bigger than the nominal face, clipped to a band
-  const hCap = (c, S, col, rr, cut, x0 = 0, x1 = 1) => {
+  // actual edge point of the deformed face at angle a, pushed outward by `out`
+  const fpt = (fr, a, out = 0) => {
+    const rr = rAt(fr, a);
+    return [FACE.x + Math.cos(a) * (rr * FACE.r + out), FACE.y + Math.sin(a) * (rr * FACE.r + out)];
+  };
+  const TOPA = -Math.PI / 2;
+  // conformal fringe: grown face path clipped from the canvas top down to
+  // (actual crown + depth). grow > 1 ⇒ the band is always fully covered.
+  const hCapC = (c, S, col, fr, depth, grow = 1.07, x0 = 0, x1 = 1) => {
+    const topY = FACE.y - rAt(fr, TOPA) * FACE.r * grow;
     c.save();
-    c.beginPath(); c.rect(x0 * S, 0, (x1 - x0) * S, cut * S); c.clip();
-    hDot(c, S, col, 0.5, 0.42, rr);
+    c.beginPath(); c.rect(x0 * S, 0, (x1 - x0) * S, (topY + depth) * S); c.clip();
+    tracePath(c, fr, FACE.x * S, FACE.y * S, FACE.r * grow * S);
+    c.fillStyle = col; c.fill();
     c.restore();
   };
   const HAIR = {
     girl: {
-      bob:      { label:'Bob',        back:(c,S,k)=>{ hDot(c,S,k,0.5,0.40,0.31); hRect(c,S,k,0.19,0.36,0.62,0.22,0.10); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.30) },
-      long:     { label:'Long',       back:(c,S,k)=>{ hRect(c,S,k,0.22,0.32,0.56,0.55,0.16); hDot(c,S,k,0.5,0.36,0.31); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.30) },
-      pigtails: { label:'Pigtails',   back:(c,S,k)=>{ hDot(c,S,k,0.5,0.36,0.30); hDot(c,S,k,0.15,0.50,0.10); hDot(c,S,k,0.85,0.50,0.10); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.28) },
-      buns:     { label:'Space buns', back:(c,S,k)=>{ hDot(c,S,k,0.24,0.15,0.09); hDot(c,S,k,0.76,0.15,0.09); hDot(c,S,k,0.5,0.38,0.295); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.27) },
-      pony:     { label:'Ponytail',   back:(c,S,k)=>{ hDot(c,S,k,0.5,0.36,0.295); hDot(c,S,k,0.80,0.15,0.075); hRect(c,S,k,0.755,0.15,0.09,0.36,0.045); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.27) },
-      afro:     { label:'Afro',       back:(c,S,k)=>{ hDot(c,S,k,0.5,0.32,0.33); hDot(c,S,k,0.30,0.18,0.15); hDot(c,S,k,0.70,0.18,0.15); hDot(c,S,k,0.5,0.13,0.16); hDot(c,S,k,0.17,0.34,0.13); hDot(c,S,k,0.83,0.34,0.13); }, front:null },
-      braids:   { label:'Braids',     back:(c,S,k)=>{ hDot(c,S,k,0.5,0.36,0.30); hRect(c,S,k,0.15,0.34,0.11,0.40,0.055); hRect(c,S,k,0.74,0.34,0.11,0.40,0.055); hDot(c,S,k,0.205,0.77,0.04); hDot(c,S,k,0.795,0.77,0.04); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.28) },
-      hime:     { label:'Hime',       back:(c,S,k)=>{ hDot(c,S,k,0.5,0.36,0.30); hRect(c,S,k,0.185,0.32,0.13,0.32,0.065); hRect(c,S,k,0.685,0.32,0.13,0.32,0.065); }, front:(c,S,k)=>hCap(c,S,k,0.29,0.335) },
-      curls:    { label:'Curls',      back:(c,S,k)=>{ hDot(c,S,k,0.24,0.22,0.10); hDot(c,S,k,0.37,0.14,0.10); hDot(c,S,k,0.52,0.12,0.10); hDot(c,S,k,0.66,0.15,0.10); hDot(c,S,k,0.78,0.24,0.10); hDot(c,S,k,0.17,0.34,0.09); hDot(c,S,k,0.84,0.35,0.09); }, front:null },
-      topbun:   { label:'Top bun',    back:(c,S,k)=>{ hDot(c,S,k,0.5,0.11,0.10); hDot(c,S,k,0.5,0.37,0.295); }, front:(c,S,k)=>hCap(c,S,k,0.285,0.26) }
+      bob:      { label:'Bob',        back:(c,S,k,fr)=>{ hDot(c,S,k,0.5,0.40,0.31); hRect(c,S,k,0.19,0.36,0.62,0.22,0.10); }, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.165) },
+      long:     { label:'Long',       back:(c,S,k,fr)=>{ hRect(c,S,k,0.22,0.32,0.56,0.55,0.16); hDot(c,S,k,0.5,0.36,0.31); }, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.165) },
+      pigtails: { label:'Pigtails',   back:(c,S,k,fr)=>{ hDot(c,S,k,0.5,0.36,0.30); const L=fpt(fr,Math.PI*0.92,0.05), R=fpt(fr,Math.PI*0.08,0.05); hDot(c,S,k,L[0],L[1]+0.04,0.10); hDot(c,S,k,R[0],R[1]+0.04,0.10); }, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.14) },
+      buns:     { label:'Space buns', back:(c,S,k,fr)=>{ hDot(c,S,k,0.5,0.38,0.295); const L=fpt(fr,TOPA-0.62,0.05), R=fpt(fr,TOPA+0.62,0.05); hDot(c,S,k,L[0],L[1],0.09); hDot(c,S,k,R[0],R[1],0.09); }, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.13) },
+      pony:     { label:'Ponytail',   back:(c,S,k,fr)=>{ hDot(c,S,k,0.5,0.36,0.295); const P=fpt(fr,-Math.PI/4,0.045); hDot(c,S,k,P[0],P[1],0.075); hRect(c,S,k,P[0]-0.045,P[1],0.09,0.36,0.045); }, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.13) },
+      afro:     { label:'Afro',       back:(c,S,k,fr)=>{ hDot(c,S,k,0.5,0.36,0.30); for (const [a,r] of [[-2.47,0.13],[-2.02,0.15],[-1.57,0.16],[-1.12,0.15],[-0.67,0.13]]){ const P=fpt(fr,a,0.03); hDot(c,S,k,P[0],P[1],r); } }, front:null },
+      braids:   { label:'Braids',     back:(c,S,k,fr)=>{ hDot(c,S,k,0.5,0.36,0.30); const L=fpt(fr,Math.PI,0.02), R=fpt(fr,0,0.02); hRect(c,S,k,L[0]-0.105,L[1]-0.08,0.11,0.40,0.055); hRect(c,S,k,R[0]-0.005,R[1]-0.08,0.11,0.40,0.055); hDot(c,S,k,L[0]-0.05,L[1]+0.36,0.04); hDot(c,S,k,R[0]+0.05,R[1]+0.36,0.04); }, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.14) },
+      hime:     { label:'Hime',       back:(c,S,k,fr)=>{ hDot(c,S,k,0.5,0.36,0.30); const L=fpt(fr,Math.PI,0.02), R=fpt(fr,0,0.02); hRect(c,S,k,L[0]-0.125,L[1]-0.10,0.13,0.32,0.065); hRect(c,S,k,R[0]-0.005,R[1]-0.10,0.13,0.32,0.065); }, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.20) },
+      curls:    { label:'Curls',      back:(c,S,k,fr)=>{ for (const [a,r] of [[-2.6,0.09],[-2.15,0.10],[-1.75,0.10],[-1.35,0.10],[-0.95,0.10],[-0.5,0.09]]){ const P=fpt(fr,a,0.02); hDot(c,S,k,P[0],P[1],r); } }, front:null },
+      topbun:   { label:'Top bun',    back:(c,S,k,fr)=>{ hDot(c,S,k,0.5,0.37,0.295); const T=fpt(fr,TOPA,0.03); hDot(c,S,k,T[0],T[1]-0.06,0.10); }, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.12) }
     },
     boy: {
-      buzz:    { label:'Buzz',      back:null, front:(c,S,k)=>hCap(c,S,k,0.28,0.24) },
-      crew:    { label:'Crew',      back:null, front:(c,S,k)=>hCap(c,S,k,0.285,0.285) },
-      part:    { label:'Side part', back:null, front:(c,S,k)=>{ hCap(c,S,k,0.285,0.24); hCap(c,S,k,0.285,0.31,0,0.60); } },
-      spiky:   { label:'Spiky',     back:null, front:(c,S,k)=>{ hCap(c,S,k,0.28,0.25); hDot(c,S,k,0.34,0.14,0.05); hDot(c,S,k,0.46,0.11,0.055); hDot(c,S,k,0.58,0.12,0.05); hDot(c,S,k,0.68,0.165,0.045); } },
-      manbun:  { label:'Man bun',   back:(c,S,k)=>hDot(c,S,k,0.5,0.115,0.075), front:(c,S,k)=>hCap(c,S,k,0.28,0.26) },
-      mohawk:  { label:'Mohawk',    back:null, front:(c,S,k)=>hRect(c,S,k,0.455,0.055,0.09,0.20,0.045) },
-      fro:     { label:'Fro',       back:null, front:(c,S,k)=>{ hDot(c,S,k,0.36,0.175,0.12); hDot(c,S,k,0.5,0.135,0.13); hDot(c,S,k,0.64,0.175,0.12); hCap(c,S,k,0.28,0.24); } },
-      bowl:    { label:'Bowl',      back:null, front:(c,S,k)=>hCap(c,S,k,0.295,0.345) },
-      curltop: { label:'Curl top',  back:null, front:(c,S,k)=>{ hDot(c,S,k,0.36,0.155,0.075); hDot(c,S,k,0.48,0.12,0.08); hDot(c,S,k,0.60,0.14,0.075); hDot(c,S,k,0.70,0.195,0.065); hCap(c,S,k,0.28,0.23); } },
-      mullet:  { label:'Mullet',    back:(c,S,k)=>hRect(c,S,k,0.28,0.50,0.44,0.22,0.10), front:(c,S,k)=>hCap(c,S,k,0.285,0.27) }
+      buzz:    { label:'Buzz',      back:null, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.10,1.04) },
+      crew:    { label:'Crew',      back:null, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.14,1.05) },
+      part:    { label:'Side part', back:null, front:(c,S,k,fr)=>{ hCapC(c,S,k,fr,0.10,1.05); hCapC(c,S,k,fr,0.17,1.05,0,0.60); } },
+      spiky:   { label:'Spiky',     back:null, front:(c,S,k,fr)=>{ hCapC(c,S,k,fr,0.11,1.05); for (const [a,r] of [[-2.0,0.05],[-1.75,0.055],[-1.5,0.055],[-1.25,0.05],[-1.0,0.045]]){ const P=fpt(fr,a,0.025); hDot(c,S,k,P[0],P[1],r); } } },
+      manbun:  { label:'Man bun',   back:(c,S,k,fr)=>{ const T=fpt(fr,TOPA,0.02); hDot(c,S,k,T[0],T[1]-0.05,0.075); }, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.12,1.05) },
+      mohawk:  { label:'Mohawk',    back:null, front:(c,S,k,fr)=>{ const T=fpt(fr,TOPA,0); hRect(c,S,k,T[0]-0.045,T[1]-0.16,0.09,0.24,0.045); } },
+      fro:     { label:'Fro',       back:null, front:(c,S,k,fr)=>{ for (const [a,r] of [[-1.95,0.12],[-1.57,0.13],[-1.2,0.12]]){ const P=fpt(fr,a,0.03); hDot(c,S,k,P[0],P[1],r); } hCapC(c,S,k,fr,0.10,1.05); } },
+      bowl:    { label:'Bowl',      back:null, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.21,1.08) },
+      curltop: { label:'Curl top',  back:null, front:(c,S,k,fr)=>{ for (const [a,r] of [[-1.9,0.075],[-1.6,0.08],[-1.3,0.075],[-1.05,0.065]]){ const P=fpt(fr,a,0.02); hDot(c,S,k,P[0],P[1],r); } hCapC(c,S,k,fr,0.09,1.04); } },
+      mullet:  { label:'Mullet',    back:(c,S,k,fr)=>{ const B=fpt(fr,Math.PI/2,0); hRect(c,S,k,0.28,B[1]-0.14,0.44,0.22,0.10); }, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.13,1.05) }
     }
   };
   function parseHair(h){
@@ -688,12 +700,12 @@
     const [gs, gc] = parseGarment(st.g);
     const hh = parseHair(st.h);
     drawGarment(c, S, gs, gc);
-    if (hh && HAIR[hh.t][hh.s].back) HAIR[hh.t][hh.s].back(c, S, HAIR_COLORS[hh.k]);
+    if (hh && HAIR[hh.t][hh.s].back) HAIR[hh.t][hh.s].back(c, S, HAIR_COLORS[hh.k], st.r);
     tracePath(c, st.r, FACE.x * S, FACE.y * S, FACE.r * S);
     c.fillStyle = st.c;
     c.fill();
     drawEyes(c, st.r, FACE.x * S, FACE.y * S, FACE.r * S, st.e);
-    if (hh && HAIR[hh.t][hh.s].front) HAIR[hh.t][hh.s].front(c, S, HAIR_COLORS[hh.k]);
+    if (hh && HAIR[hh.t][hh.s].front) HAIR[hh.t][hh.s].front(c, S, HAIR_COLORS[hh.k], st.r);
   }
 
   function draw(){
@@ -888,10 +900,10 @@
       const S = t / 0.84;
       c2.save();
       c2.translate(-0.08 * S, -0.02 * S);
-      if (def.back) def.back(c2, S, HAIR_COLORS[k]);
+      if (def.back) def.back(c2, S, HAIR_COLORS[k], UNIT_R);
       c2.beginPath(); c2.arc(0.5 * S, 0.42 * S, FACE.r * S, 0, TAU);
       c2.fillStyle = color; c2.fill();
-      if (def.front) def.front(c2, S, HAIR_COLORS[k]);
+      if (def.front) def.front(c2, S, HAIR_COLORS[k], UNIT_R);
       c2.restore();
       b.appendChild(mc);
       b.addEventListener('click', () => {
