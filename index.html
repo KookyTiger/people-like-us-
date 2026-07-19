@@ -111,9 +111,38 @@
   .stage.nobg{background:#E7E0CF}  /* one shade below Bone so Bone-colored details stay visible; export is still fully transparent */
   .stage.nobg .hint,.stage.nobg .badge{color:var(--ink)}
 
-  .shop{display:flex;gap:18px;align-items:flex-start}
-  .shop .styles{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
-  .shop .colors{display:flex;flex-direction:column;gap:8px;margin-left:auto}
+  .panel{
+    border:2px solid var(--ink);
+    border-radius:16px;
+    padding:14px;
+  }
+  .tabbar{display:flex;gap:8px;margin-bottom:14px}
+  button.tab{
+    flex:1;
+    font-family:'Archivo',sans-serif;
+    font-weight:700;font-size:13px;
+    letter-spacing:.04em;
+    padding:10px 0;
+    border-radius:999px;
+    border:2px solid var(--ink);
+    background:transparent;color:var(--ink);
+    cursor:pointer;
+  }
+  button.tab[aria-pressed="true"]{background:var(--ink);color:var(--bone)}
+  button.tab:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  .panel-foot{
+    display:flex;align-items:center;gap:14px;
+    border-top:2px solid var(--ink);
+    margin-top:14px;padding-top:12px;
+  }
+  .shop{display:flex;flex-direction:column;gap:12px}
+  .shop .styles{display:flex;flex-wrap:wrap;gap:8px}
+  .shop .colors{
+    display:flex;gap:8px;
+    overflow-x:auto;
+    padding:2px 2px 6px;
+  }
+  .shop .colors button.colorchip{flex:0 0 auto}
   button.colorchip{
     padding:2px;
     border:3px solid transparent;
@@ -302,39 +331,45 @@
   </div>
 
   <div id="dressCtrls" hidden>
-    <div class="chips">
-      <p class="opt-label">Outfit</p>
-      <div class="shop">
-        <div class="styles" role="group" aria-label="Outfit style">
-          <button class="chip" data-gs="tee" aria-pressed="true">Tee</button>
-          <button class="chip" data-gs="stripe" aria-pressed="false">Stripes</button>
-          <button class="chip" data-gs="suit" aria-pressed="false">Suit</button>
-          <button class="chip" data-gs="polka" aria-pressed="false">Polka</button>
-          <button class="chip" data-gs="hoodie" aria-pressed="false">Hoodie</button>
+    <div class="panel">
+      <div class="tabbar" role="group" aria-label="Dress up">
+        <button class="tab" data-tab="outfit" aria-pressed="true">Outfit</button>
+        <button class="tab" data-tab="hair" aria-pressed="false">Hair</button>
+      </div>
+      <div id="tab-outfit">
+        <div class="shop">
+          <div class="styles" role="group" aria-label="Outfit style">
+            <button class="chip" data-gs="tee" aria-pressed="true">Tee</button>
+            <button class="chip" data-gs="stripe" aria-pressed="false">Stripes</button>
+            <button class="chip" data-gs="suit" aria-pressed="false">Suit</button>
+            <button class="chip" data-gs="polka" aria-pressed="false">Polka</button>
+            <button class="chip" data-gs="hoodie" aria-pressed="false">Hoodie</button>
+          </div>
+          <div class="colors" id="colorBar" role="group" aria-label="Outfit color"></div>
         </div>
-        <div class="colors" id="colorBar" role="group" aria-label="Outfit color"></div>
+      </div>
+      <div id="tab-hair" hidden>
+        <div class="shop">
+          <div class="styles" role="group" aria-label="Hair type">
+            <button class="chip" data-ht="none" aria-pressed="true">None</button>
+            <button class="chip" data-ht="girl" aria-pressed="false">Girl</button>
+            <button class="chip" data-ht="boy" aria-pressed="false">Boy</button>
+          </div>
+          <div class="shop" id="hairShop" hidden>
+            <div class="styles" id="hairStyles" role="group" aria-label="Hairstyle"></div>
+            <div class="colors" id="hairColorBar" role="group" aria-label="Hair color"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-foot">
+        <p class="opt-label" style="margin:0">Background</p>
+        <div class="row" role="group" aria-label="Background">
+          <button class="chip" data-bgmode="black" aria-pressed="true">Black</button>
+          <button class="chip" data-bgmode="none" aria-pressed="false">None</button>
+        </div>
       </div>
     </div>
-    <div class="chips">
-      <p class="opt-label">Hair</p>
-      <div class="row" role="group" aria-label="Hair type">
-        <button class="chip" data-ht="none" aria-pressed="true">None</button>
-        <button class="chip" data-ht="girl" aria-pressed="false">Girl</button>
-        <button class="chip" data-ht="boy" aria-pressed="false">Boy</button>
-      </div>
-      <div class="shop" id="hairShop" hidden style="margin-top:10px">
-        <div class="styles" id="hairStyles" role="group" aria-label="Hairstyle"></div>
-        <div class="colors" id="hairColorBar" role="group" aria-label="Hair color"></div>
-      </div>
-    </div>
-    <div class="chips">
-      <p class="opt-label">Background</p>
-      <div class="row" role="group" aria-label="Background">
-        <button class="chip" data-bgmode="black" aria-pressed="true">Black</button>
-        <button class="chip" data-bgmode="none" aria-pressed="false">None</button>
-      </div>
-    </div>
-    <div class="row">
+    <div class="row" style="margin-top:14px">
       <button class="action" id="back">← Face</button>
       <button class="action" id="save">Save PNG</button>
       <button class="action primary" id="join">Join the pool</button>
@@ -883,6 +918,15 @@
       }
       syncHairUI();
       draw();
+    });
+  });
+
+  document.querySelectorAll('[data-tab]').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('[data-tab]').forEach(x => x.setAttribute('aria-pressed', 'false'));
+      b.setAttribute('aria-pressed', 'true');
+      document.getElementById('tab-outfit').hidden = (b.dataset.tab !== 'outfit');
+      document.getElementById('tab-hair').hidden = (b.dataset.tab !== 'hair');
     });
   });
 
