@@ -20,6 +20,7 @@
     --yolk:#FFC300;
     --pool:#19C5FF;
     --cherry:#E62144;
+    --oat:#FFEDC2;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   [hidden]{display:none!important}
@@ -105,6 +106,7 @@
     flex:0 0 auto;
     transition:transform .12s ease;
   }
+  .swatch[data-c="#FFEDC2"]:not([aria-pressed="true"]){border-color:rgba(20,20,20,.18)}  /* cream needs an outline on the bone page */
   .swatch[aria-pressed="true"]{border-color:var(--ink);transform:scale(1.12)}
   .swatch:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 
@@ -293,6 +295,7 @@
     <button class="swatch" data-c="#FFC300" style="background:#FFC300" aria-label="Yolk" aria-pressed="false"></button>
     <button class="swatch" data-c="#19C5FF" style="background:#19C5FF" aria-label="Pool" aria-pressed="false"></button>
     <button class="swatch" data-c="#E62144" style="background:#E62144" aria-label="Cherry" aria-pressed="false"></button>
+    <button class="swatch" data-c="#FFEDC2" style="background:#FFEDC2" aria-label="Oat" aria-pressed="false"></button>
   </div>
 
   <div class="chips" id="eyeChips">
@@ -403,7 +406,7 @@
   const COLORS = {
     pink:'#FF3D8B', ember:'#FF4A17', acid:'#C6FF33', blue:'#1E3AFF',
     rave:'#9D3CFF', fizz:'#29F0C8', toffee:'#C4802F', yolk:'#FFC300',
-    pool:'#19C5FF', cherry:'#E62144'
+    pool:'#19C5FF', cherry:'#E62144', oat:'#FFEDC2'
   };
   let color = COLORS.pink;
   let eyeStyle = 'none';
