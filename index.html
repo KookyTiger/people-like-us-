@@ -20,7 +20,9 @@
     --yolk:#FFC300;
     --pool:#19C5FF;
     --cherry:#E62144;
+    --clover:#3DFF6E;
     --oat:#FFEDC2;
+    --paper:#E7E0CF; /* UI helper only (transparent-preview stage), not a brand color */
   }
   *{box-sizing:border-box;margin:0;padding:0}
   [hidden]{display:none!important}
@@ -110,7 +112,7 @@
   .swatch[aria-pressed="true"]{border-color:var(--ink);transform:scale(1.12)}
   .swatch:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 
-  .stage.nobg{background:#E7E0CF}  /* one shade below Bone so Bone-colored details stay visible; export is still fully transparent */
+  .stage.nobg{background:var(--paper)}  /* one shade below Bone so Bone-colored details stay visible; export is still fully transparent */
   .stage.nobg .hint,.stage.nobg .badge{color:var(--ink)}
 
   .panel{
@@ -291,6 +293,7 @@
     <button class="swatch" data-c="#1E3AFF" style="background:#1E3AFF" aria-label="Volt Blue" aria-pressed="false"></button>
     <button class="swatch" data-c="#9D3CFF" style="background:#9D3CFF" aria-label="Rave" aria-pressed="false"></button>
     <button class="swatch" data-c="#29F0C8" style="background:#29F0C8" aria-label="Fizz" aria-pressed="false"></button>
+    <button class="swatch" data-c="#3DFF6E" style="background:#3DFF6E" aria-label="Clover" aria-pressed="false"></button>
     <button class="swatch" data-c="#C4802F" style="background:#C4802F" aria-label="Toffee" aria-pressed="false"></button>
     <button class="swatch" data-c="#FFC300" style="background:#FFC300" aria-label="Yolk" aria-pressed="false"></button>
     <button class="swatch" data-c="#19C5FF" style="background:#19C5FF" aria-label="Pool" aria-pressed="false"></button>
@@ -405,8 +408,8 @@
 
   const COLORS = {
     pink:'#FF3D8B', ember:'#FF4A17', acid:'#C6FF33', blue:'#1E3AFF',
-    rave:'#9D3CFF', fizz:'#29F0C8', toffee:'#C4802F', yolk:'#FFC300',
-    pool:'#19C5FF', cherry:'#E62144', oat:'#FFEDC2'
+    rave:'#9D3CFF', fizz:'#29F0C8', clover:'#3DFF6E', toffee:'#C4802F',
+    yolk:'#FFC300', pool:'#19C5FF', cherry:'#E62144', oat:'#FFEDC2'
   };
   let color = COLORS.pink;
   let eyeStyle = 'none';
@@ -423,28 +426,31 @@
   // sorbet tones: clothes + accessory accents only. Muted on purpose —
   // neon belongs to the face (the person), the outfit never upstages it.
   const SORBET = { pink:'#FFB3D1', peach:'#FFC9A3', lime:'#EEFA9E', peri:'#AEB8FF', lilac:'#D9B8FF', mint:'#B2F5DC' };
-  // everyday neutrals — warm greys for garments that should read casual, not candy
-  const GREY = { suit:'#A39E95', hood:'#B6B1A8', pocket:'#9C978E' };
+  // everyday neutrals — ONE warm grey ladder (light/mid/deep) shared by
+  // garments and hair, instead of four ad-hoc greys
+  const GREY = { light:'#B6B1A8', mid:'#A8A29A', deep:'#9C978E' };
   const INKC = '#141414', BONEC = '#F4EEE2';
   // wardrobe: style → colorways (base + pattern/pocket accents), shop-style
   const GARMENTS = {
     tee:    { colors: {
       peri:{ base:SORBET.peri }, pink:{ base:SORBET.pink },
-      mint:{ base:SORBET.mint }, grey:{ base:GREY.hood }
+      mint:{ base:SORBET.mint }, peach:{ base:SORBET.peach },
+      grey:{ base:GREY.light }
     } },
     stripe: { colors: {
       ink: { base:BONEC, pat:INKC },  peri:{ base:SORBET.peri, pat:BONEC },
       pink:{ base:SORBET.pink, pat:BONEC }, mint:{ base:SORBET.mint, pat:INKC }
     } },
     suit:   { colors: {
-      grey:{ base:GREY.suit }, peri:{ base:SORBET.peri }, lilac:{ base:SORBET.lilac }
+      grey:{ base:GREY.mid }, peri:{ base:SORBET.peri }, lilac:{ base:SORBET.lilac }
     } },
     polka:  { colors: {
       pink:{ base:SORBET.pink, pat:BONEC }, bone:{ base:BONEC, pat:INKC },
-      peri:{ base:SORBET.peri, pat:BONEC }, mint:{ base:SORBET.mint, pat:INKC }
+      peri:{ base:SORBET.peri, pat:BONEC }, mint:{ base:SORBET.mint, pat:INKC },
+      lime:{ base:SORBET.lime, pat:INKC }
     } },
     hoodie: { colors: {
-      grey:{ base:GREY.hood, pocket:GREY.pocket },
+      grey:{ base:GREY.light, pocket:GREY.deep },
       peri:{ base:SORBET.peri, pocket:'#8E9BE8' },
       pink:{ base:SORBET.pink, pocket:'#EC93BC' }
     } }
@@ -453,8 +459,8 @@
   // can't collide with the person by construction; a live contrast gate
   // additionally greys out anything too close to the current face color.
   const HAIR_COLORS = {
-    black:'#4A443E', brown:'#6E4A26', caramel:'#A9722E', blonde:'#E9C46A',
-    grey:'#A8A29A', bone:'#F4EEE2',
+    black:'#4A443E', brown:'#6E4A26', rust:'#B3492B', caramel:'#A9722E',
+    blonde:'#E9C46A', grey:GREY.mid, bone:'#F4EEE2',
     peri:SORBET.peri, pink:SORBET.pink, lilac:SORBET.lilac
   };
   let step = 'face';       // 'face' | 'dress'
