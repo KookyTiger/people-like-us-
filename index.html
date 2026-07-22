@@ -359,7 +359,7 @@
     <div class="panel">
       <div class="tabbar" role="group" aria-label="Dress up">
         <button class="tab" data-tab="outfit" aria-pressed="true">Outfit</button>
-        <button class="tab" data-tab="hair" aria-pressed="false">Hair</button>
+        <button class="tab" data-tab="hair" aria-pressed="false">Hair / Hat</button>
       </div>
       <div id="tab-outfit">
         <div class="shop">
@@ -369,6 +369,13 @@
             <button class="chip" data-gs="suit" aria-pressed="false">Suit</button>
             <button class="chip" data-gs="polka" aria-pressed="false">Polka</button>
             <button class="chip" data-gs="hoodie" aria-pressed="false">Hoodie</button>
+            <button class="chip" data-gs="school" aria-pressed="false">School</button>
+            <button class="chip" data-gs="chef" aria-pressed="false">Chef</button>
+            <button class="chip" data-gs="punk" aria-pressed="false">Punk</button>
+            <button class="chip" data-gs="hipster" aria-pressed="false">Hipster</button>
+            <button class="chip" data-gs="maiden" aria-pressed="false">Maiden</button>
+            <button class="chip" data-gs="super" aria-pressed="false">Super</button>
+            <button class="chip" data-gs="naked" aria-pressed="false">Naked</button>
           </div>
           <div class="colors" id="colorBar" role="group" aria-label="Outfit color"></div>
         </div>
@@ -379,6 +386,7 @@
             <button class="chip" data-ht="none" aria-pressed="true">None</button>
             <button class="chip" data-ht="girl" aria-pressed="false">Girl</button>
             <button class="chip" data-ht="boy" aria-pressed="false">Boy</button>
+            <button class="chip" data-ht="hat" aria-pressed="false">Hats</button>
           </div>
           <div class="shop" id="hairShop" hidden>
             <div class="styles" id="hairStyles" role="group" aria-label="Hairstyle"></div>
@@ -488,6 +496,27 @@
       grey:{ base:GREY.light, pocket:GREY.deep },
       peri:{ base:SORBET.peri, pocket:'#8E9BE8' },
       pink:{ base:SORBET.pink, pocket:'#EC93BC' }
+    } },
+    school: { colors: {
+      peri:{ base:SORBET.peri }, pink:{ base:SORBET.pink }, mint:{ base:SORBET.mint }
+    } },
+    chef:   { colors: {
+      bone:{ base:BONEC }, grey:{ base:GREY.light }
+    } },
+    punk:   { colors: {
+      black:{ base:'#4A443E' }, grey:{ base:GREY.deep }
+    } },
+    hipster:{ colors: {
+      peach:{ base:SORBET.peach }, mint:{ base:SORBET.mint }, lilac:{ base:SORBET.lilac }
+    } },
+    maiden: { colors: {
+      peri:{ base:SORBET.peri }, pink:{ base:SORBET.pink }, lilac:{ base:SORBET.lilac }
+    } },
+    super:  { colors: {
+      hero:{ base:SORBET.peri }
+    } },
+    naked:  { colors: {
+      skin:{}   /* base = the face color: naked IS the person */
     } }
   };
   // hair: naturals + a few sorbet dye-jobs. Never the face neons, so hair
@@ -639,11 +668,12 @@
     return LEGACY[g] || ['tee', 'peri'];
   }
 
-  function drawGarment(c, S, style, colKey){
-    const spec = GARMENTS[style].colors[colKey];
+  function drawGarment(c, S, style, colKey, faceCol){
+    const spec = GARMENTS[style].colors[colKey] || {};
+    const base = spec.base || faceCol || SORBET.peri;
     c.save();
     torsoPath(c, S); c.clip();
-    torsoPath(c, S); c.fillStyle = spec.base; c.fill();
+    torsoPath(c, S); c.fillStyle = base; c.fill();
     if (style === 'tee'){
       c.beginPath(); c.arc(0.5 * S, 0.72 * S, 0.10 * S, 0, TAU);
       c.fillStyle = BONEC; c.fill();
@@ -673,6 +703,68 @@
       c.fillStyle = spec.base; c.fill();
       c.fillStyle = spec.pocket;
       c.beginPath(); c.roundRect(0.36 * S, 0.84 * S, 0.28 * S, 0.14 * S, 0.035 * S); c.fill();
+    } else if (style === 'school'){
+      // sailor V panel + bow dot
+      c.fillStyle = BONEC;
+      c.beginPath(); c.moveTo(0.32 * S, 0.63 * S); c.lineTo(0.68 * S, 0.63 * S);
+      c.lineTo(0.5 * S, 0.90 * S); c.closePath(); c.fill();
+      c.fillStyle = INKC;
+      c.beginPath(); c.arc(0.5 * S, 0.80 * S, 0.028 * S, 0, TAU); c.fill();
+    } else if (style === 'chef'){
+      // double-breasted: two columns of buttons
+      c.fillStyle = INKC;
+      for (const x of [0.42, 0.58]){
+        for (const y of [0.72, 0.82, 0.92]){
+          c.beginPath(); c.arc(x * S, y * S, 0.014 * S, 0, TAU); c.fill();
+        }
+      }
+    } else if (style === 'punk'){
+      // jacket over bone tee, stud rows, one sorbet pin
+      c.fillStyle = BONEC;
+      c.beginPath(); c.moveTo(0.42 * S, 0.63 * S); c.lineTo(0.58 * S, 0.63 * S);
+      c.lineTo(0.5 * S, 0.80 * S); c.closePath(); c.fill();
+      for (let x = 0.24; x <= 0.405; x += 0.045){
+        c.beginPath(); c.arc(x * S, 0.685 * S, 0.011 * S, 0, TAU); c.fill();
+      }
+      for (let x = 0.60; x <= 0.765; x += 0.045){
+        c.beginPath(); c.arc(x * S, 0.685 * S, 0.011 * S, 0, TAU); c.fill();
+      }
+      c.fillStyle = SORBET.pink;
+      c.beginPath(); c.arc(0.36 * S, 0.76 * S, 0.018 * S, 0, TAU); c.fill();
+    } else if (style === 'hipster'){
+      // checkered flannel
+      c.fillStyle = INKC;
+      for (let row = 0; row < 5; row++){
+        for (let col = 0; col < 8; col++){
+          if ((row + col) % 2) c.fillRect((0.06 + col * 0.11) * S, (0.65 + row * 0.08) * S, 0.055 * S, 0.04 * S);
+        }
+      }
+    } else if (style === 'maiden'){
+      // dirndl apron + strap dots
+      c.fillStyle = BONEC;
+      c.beginPath(); c.moveTo(0.40 * S, 0.76 * S); c.lineTo(0.60 * S, 0.76 * S);
+      c.lineTo(0.68 * S, 1.02 * S); c.lineTo(0.32 * S, 1.02 * S); c.closePath(); c.fill();
+      c.fillStyle = INKC;
+      c.beginPath(); c.arc(0.42 * S, 0.70 * S, 0.014 * S, 0, TAU); c.fill();
+      c.beginPath(); c.arc(0.58 * S, 0.70 * S, 0.014 * S, 0, TAU); c.fill();
+    } else if (style === 'super'){
+      // cape edges + chest diamond
+      c.fillStyle = SORBET.pink;
+      c.fillRect(0.04 * S, 0.66 * S, 0.10 * S, 0.40 * S);
+      c.fillRect(0.86 * S, 0.66 * S, 0.10 * S, 0.40 * S);
+      c.beginPath(); c.moveTo(0.5 * S, 0.71 * S); c.lineTo(0.61 * S, 0.80 * S);
+      c.lineTo(0.5 * S, 0.89 * S); c.lineTo(0.39 * S, 0.80 * S); c.closePath(); c.fill();
+      c.fillStyle = BONEC;
+      c.beginPath(); c.moveTo(0.5 * S, 0.745 * S); c.lineTo(0.575 * S, 0.80 * S);
+      c.lineTo(0.5 * S, 0.855 * S); c.lineTo(0.425 * S, 0.80 * S); c.closePath(); c.fill();
+      c.fillStyle = INKC;
+      c.beginPath(); c.arc(0.5 * S, 0.80 * S, 0.02 * S, 0, TAU); c.fill();
+    } else if (style === 'naked'){
+      // skin = face color; just the anatomy dots
+      c.fillStyle = INKC;
+      c.beginPath(); c.arc(0.40 * S, 0.74 * S, 0.012 * S, 0, TAU); c.fill();
+      c.beginPath(); c.arc(0.60 * S, 0.74 * S, 0.012 * S, 0, TAU); c.fill();
+      c.beginPath(); c.arc(0.5 * S, 0.88 * S, 0.015 * S, 0, TAU); c.fill();
     }
     c.restore();
   }
@@ -745,6 +837,56 @@
       bowl:    { label:'Bowl',      back:null, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.21,1.08) },
       curltop: { label:'Curl top',  back:null, front:(c,S,k,fr)=>{ for (const [a,r] of [[-1.9,0.075],[-1.6,0.08],[-1.3,0.075],[-1.05,0.065]]){ const P=fpt(fr,a,0.02); hDot(c,S,k,P[0],P[1],r); } hCapC(c,S,k,fr,0.09,1.04); } },
       mullet:  { label:'Mullet',    back:(c,S,k,fr)=>{ const B=fpt(fr,Math.PI/2,0); hRect(c,S,k,0.28,B[1]-0.14,0.44,0.22,0.10); }, front:(c,S,k,fr)=>hCapC(c,S,k,fr,0.13,1.05) }
+    },
+    // hats: LEGO logic — you get hair OR a hat, never both. Same crown
+    // anchoring + eye clamp as the fringes.
+    hat: {
+      cap:    { label:'Cap',    back:null, front:(c,S,k,fr)=>{
+        const ty = FACE.y - rAt(fr,TOPA) * FACE.r;
+        hCapC(c,S,k,fr,0.11,1.06);
+        const by = Math.min(ty + 0.115, hairEyeY - 0.02);
+        hRect(c,S,k,0.20,by,0.60,0.045,0.022);
+        hDot(c,S,k,0.5,ty - 0.015,0.025);
+      } },
+      cowboy: { label:'Cowboy', back:null, front:(c,S,k,fr)=>{
+        const ty = FACE.y - rAt(fr,TOPA) * FACE.r;
+        const by = Math.min(ty + 0.06, hairEyeY - 0.03);
+        hRect(c,S,k,0.34,ty - 0.13,0.32,0.20,0.05);
+        hRect(c,S,k,0.14,by,0.72,0.05,0.025);
+        hDot(c,S,k,0.17,by,0.032);
+        hDot(c,S,k,0.83,by,0.032);
+      } },
+      beach:  { label:'Beach',  back:null, front:(c,S,k,fr)=>{
+        const ty = FACE.y - rAt(fr,TOPA) * FACE.r;
+        const by = Math.min(ty + 0.08, hairEyeY - 0.02);
+        hCapC(c,S,k,fr,0.07,1.10);
+        c.save(); c.beginPath(); c.rect(0,0,S,(ty + 0.02) * S); c.clip();
+        hDot(c,S,k,0.5,ty + 0.02,0.16);
+        c.restore();
+        hRect(c,S,k,0.06,by,0.88,0.05,0.025);
+      } },
+      bucket: { label:'Dotted', back:null, front:(c,S,k,fr)=>{
+        const ty = FACE.y - rAt(fr,TOPA) * FACE.r;
+        hCapC(c,S,k,fr,0.12,1.07);
+        c.save(); c.beginPath(); c.rect(0,0,S,(ty + 0.01) * S); c.clip();
+        hDot(c,S,k,0.5,ty + 0.06,0.20);
+        c.restore();
+        const by = Math.min(ty + 0.125, hairEyeY - 0.02);
+        hRect(c,S,k,0.235,by,0.53,0.042,0.021);
+        const pc = lum(k) > 0.35 ? '#141414' : '#F4EEE2';
+        hDot(c,S,pc,0.41,ty - 0.02,0.016);
+        hDot(c,S,pc,0.52,ty - 0.07,0.016);
+        hDot(c,S,pc,0.61,ty - 0.01,0.016);
+        hDot(c,S,pc,0.47,ty + 0.045,0.016);
+      } },
+      chef:   { label:'Chef',   back:null, front:(c,S,k,fr)=>{
+        const ty = FACE.y - rAt(fr,TOPA) * FACE.r;
+        hRect(c,S,k,0.36,ty - 0.045,0.28,0.10,0.03);
+        hDot(c,S,k,0.40,ty - 0.115,0.085);
+        hDot(c,S,k,0.50,ty - 0.155,0.095);
+        hDot(c,S,k,0.60,ty - 0.115,0.085);
+        hCapC(c,S,k,fr,0.05,1.05);
+      } }
     }
   };
   function parseHair(h){
@@ -757,7 +899,7 @@
   function drawPortrait(c, S, st){
     const [gs, gc] = parseGarment(st.g);
     const hh = parseHair(st.h);
-    drawGarment(c, S, gs, gc);
+    drawGarment(c, S, gs, gc, st.c);
     if (hh && HAIR[hh.t][hh.s].back) HAIR[hh.t][hh.s].back(c, S, HAIR_COLORS[hh.k], st.r);
     tracePath(c, st.r, FACE.x * S, FACE.y * S, FACE.r * S);
     c.fillStyle = st.c;
@@ -879,7 +1021,7 @@
       const S = t / 0.42;
       c.save();
       c.translate(-0.29 * S, -0.58 * S);
-      drawGarment(c, S, garmentStyle, key);
+      drawGarment(c, S, garmentStyle, key, color);
       c.restore();
       b.appendChild(mc);
       b.addEventListener('click', () => {
