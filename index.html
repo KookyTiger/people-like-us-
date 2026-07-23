@@ -121,6 +121,106 @@
     clip-path:polygon(14% 0,86% 0,97% 100%,3% 100%);
     box-shadow:inset 0 0 24px rgba(0,0,0,.06),inset 2px 0 5px rgba(255,255,255,.5),inset -2px 0 5px rgba(0,0,0,.05);
   }
+  /* --- metro ad screen mode (#screen) --- */
+  body.screen-mode{
+    background:radial-gradient(circle at 50% 40%,#2a2c30 0%,#141517 70%,#0b0c0d 100%);
+    padding:0;justify-content:center;
+  }
+  #metro{
+    width:100%;min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    padding:clamp(12px,3vw,36px);
+  }
+  .metro-panel{
+    width:100%;max-width:1100px;
+    background:var(--ink);
+    border-radius:10px;
+    padding:clamp(18px,3vw,38px);
+    display:flex;flex-direction:column;
+    box-shadow:
+      0 0 0 clamp(8px,1.4vw,16px) #c9c5bc,
+      0 0 0 calc(clamp(8px,1.4vw,16px) + 3px) #8e8a82,
+      0 0 90px 20px rgba(255,240,200,.10),
+      0 50px 90px -30px rgba(0,0,0,.8);
+  }
+  .metro-head{
+    display:flex;justify-content:space-between;align-items:baseline;
+    border-bottom:3px solid var(--bone);
+    padding-bottom:12px;margin-bottom:clamp(14px,2.4vw,24px);
+    color:var(--bone);
+  }
+  .metro-head h1{
+    font-family:'Archivo Black',sans-serif;
+    font-size:clamp(22px,4.2vw,48px);
+    line-height:1;margin:0;letter-spacing:-.01em;
+  }
+  .metro-head span{
+    font-size:clamp(9px,1.2vw,13px);font-weight:700;
+    letter-spacing:.2em;text-transform:uppercase;opacity:.75;
+  }
+  .metro-wall{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(clamp(74px,9vw,120px),1fr));
+    gap:clamp(8px,1.2vw,16px);
+    align-content:start;
+    min-height:clamp(180px,34vh,420px);
+  }
+  .wall-cell canvas{width:100%;aspect-ratio:1/1;display:block;border-radius:4px}
+  .wall-name{
+    font-size:clamp(8px,.9vw,11px);font-weight:700;
+    letter-spacing:.08em;text-transform:uppercase;
+    color:var(--bone);opacity:.8;text-align:center;margin-top:4px;
+  }
+  .wall-cell.pop{animation:pop .7s cubic-bezier(.2,1.5,.4,1)}
+  @keyframes pop{
+    0%{transform:scale(.2) rotate(-12deg);opacity:0}
+    60%{transform:scale(1.12) rotate(3deg);opacity:1}
+    100%{transform:scale(1) rotate(0);opacity:1}
+  }
+  .metro-empty{
+    grid-column:1/-1;color:var(--bone);opacity:.5;
+    font-size:clamp(12px,1.5vw,16px);padding:24px 0;
+  }
+  .metro-foot{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:20px;
+    margin-top:clamp(14px,2.4vw,26px);
+    border-top:3px solid var(--bone);padding-top:clamp(12px,2vw,20px);
+    color:var(--bone);
+  }
+  .metro-formula{
+    font-family:'Archivo Black',sans-serif;
+    font-size:clamp(13px,2.2vw,28px);line-height:1.25;
+  }
+  .metro-ticker{
+    font-size:clamp(9px,1.2vw,13px);font-weight:700;
+    letter-spacing:.16em;text-transform:uppercase;
+    margin-top:8px;opacity:.75;min-height:1.2em;
+  }
+  .metro-ticker.flash{animation:tflash 1.4s ease}
+  @keyframes tflash{0%,100%{opacity:.75}20%{opacity:1;color:var(--acid)}}
+  .metro-qr{
+    flex:0 0 auto;text-align:center;
+    background:var(--bone);border-radius:8px;
+    padding:clamp(8px,1.2vw,14px);
+  }
+  .metro-qr canvas,.metro-qr img{
+    display:block;width:clamp(78px,11vw,150px);height:auto;image-rendering:pixelated;
+  }
+  .metro-qr p{
+    font-size:clamp(7px,.85vw,10px);font-weight:700;
+    letter-spacing:.12em;text-transform:uppercase;
+    color:var(--ink);margin-top:6px;max-width:clamp(78px,11vw,150px);line-height:1.3;
+  }
+  .metro-qr .qr-url{
+    font-size:9px;font-weight:700;color:var(--ink);
+    word-break:break-all;max-width:140px;
+  }
+  .sync-tag{
+    position:fixed;right:10px;bottom:8px;
+    font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--bone);opacity:.28;
+  }
+
   .kiosk-base{
     width:88%;height:26px;border-radius:9px;
     background:
@@ -510,6 +610,7 @@
   </div>
 
   <section id="reveal" hidden>
+    <p class="opt-label" style="text-align:center;margin-bottom:10px">✳ You're on the big screen now</p>
     <button class="action primary" id="findBtn" style="width:100%">Find people like me →</button>
     <p class="sub" id="revealMsg" hidden style="margin:14px 0 0">Finding people like you…</p>
     <div id="matchWrap" hidden>
@@ -548,6 +649,29 @@
   <div class="kiosk-column"></div>
   <div class="kiosk-base"></div>
 </div>
+
+<div id="metro" hidden>
+  <div class="metro-panel">
+    <div class="metro-head">
+      <h1>People like us.</h1>
+      <span>Copenhagen · alcohol-free</span>
+    </div>
+    <div class="metro-wall" id="wall">
+      <p class="metro-empty" id="wallEmpty">Nobody yet. Scan the code and be the first.</p>
+    </div>
+    <div class="metro-foot">
+      <div>
+        <div class="metro-formula">People like you + people like me<br>= people like us</div>
+        <p class="metro-ticker" id="ticker"></p>
+      </div>
+      <div class="metro-qr">
+        <canvas id="qr"></canvas>
+        <p id="qrLabel">Scan · make yours</p>
+      </div>
+    </div>
+  </div>
+</div>
+<span class="sync-tag" id="syncTag" hidden></span>
 
 <script>
 (() => {
@@ -1442,6 +1566,324 @@
     setStep('face');
   });
 
+  // --- sync layer ---
+  // Cloud (Firestore, real-time) when FIREBASE_CONFIG is filled in; otherwise
+  // falls back to BroadcastChannel so two tabs on one machine still demo the
+  // live wall. Same API either way, so nothing else in the app changes.
+  const FIREBASE_CONFIG = null;   // paste your firebaseConfig object here to go cross-device
+
+  const slimDot = d => ({
+    c: d.c, e: d.e, g: d.g || null, h: d.h || null,
+    bg: d.bg !== false, n: d.n || '',
+    r: Array.from(d.r, v => Math.round(v * 1000) / 1000)
+  });
+  const hydrate = d => ({ ...d, r: Float64Array.from(d.r) });
+
+  const Sync = {
+    mode: 'local',
+    _cb: () => {},
+    _bc: null,
+    _fs: null,
+    _db: null,
+    async start(cb){
+      this._cb = cb;
+      if (FIREBASE_CONFIG){
+        try {
+          const [appMod, fs] = await Promise.all([
+            import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),
+            import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js')
+          ]);
+          this._fs = fs;
+          this._db = fs.getFirestore(appMod.initializeApp(FIREBASE_CONFIG));
+          this.mode = 'cloud';
+          const q = fs.query(fs.collection(this._db, 'dots'), fs.orderBy('t', 'desc'), fs.limit(300));
+          fs.onSnapshot(q, snap => {
+            snap.docChanges().forEach(ch => { if (ch.type === 'added') this._cb(ch.doc.data()); });
+          });
+          return;
+        } catch (e) { /* fall through to local */ }
+      }
+      try {
+        this._bc = new BroadcastChannel('plu-dots');
+        this._bc.onmessage = e => this._cb(e.data);
+      } catch (e) { /* single tab only */ }
+    },
+    publish(d){
+      const payload = slimDot(d);
+      if (this.mode === 'cloud'){
+        this._fs.addDoc(this._fs.collection(this._db, 'dots'), { ...payload, t: Date.now() }).catch(() => {});
+      } else if (this._bc){
+        this._bc.postMessage(payload);
+      }
+    }
+  };
+
+  // --- metro ad screen (#screen) ---
+  const wallEl = document.getElementById('wall');
+  const wallEmpty = document.getElementById('wallEmpty');
+  const tickerEl = document.getElementById('ticker');
+  let wallCount = 0;
+
+  function addToWall(d, isNew){
+    const s = 240, mc = document.createElement('canvas');
+    mc.width = s; mc.height = s;
+    const c = mc.getContext('2d');
+    c.fillStyle = '#141414';
+    c.fillRect(0, 0, s, s);
+    drawPortrait(c, s, hydrate(d));
+    const cell = document.createElement('div');
+    cell.className = 'wall-cell' + (isNew ? ' pop' : '');
+    cell.appendChild(mc);
+    const label = document.createElement('p');
+    label.className = 'wall-name';
+    label.textContent = d.n || 'someone';
+    cell.appendChild(label);
+    wallEl.prepend(cell);
+    wallCount++;
+    wallEmpty.hidden = true;
+    while (wallEl.querySelectorAll('.wall-cell').length > 60) wallEl.lastElementChild.remove();
+    if (isNew){
+      tickerEl.textContent = (d.n || 'Someone') + ' just joined · ' + wallCount + ' in the pool';
+      tickerEl.classList.remove('flash');
+      void tickerEl.offsetWidth;
+      tickerEl.classList.add('flash');
+    }
+  }
+
+  // Self-contained QR encoder (byte mode, ECC level M, versions 1-10).
+  // No CDN — a bar's wifi shouldn't be able to break the installation.
+  // Verified module-for-module against the reference `qrcode` library.
+  function qrMatrix(text){
+    const EXP = new Uint8Array(512), LOG = new Uint8Array(256);
+    (() => { let x = 1; for (let i = 0; i < 255; i++){ EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11D; }
+             for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255]; })();
+    const mul = (a, b) => (a === 0 || b === 0) ? 0 : EXP[LOG[a] + LOG[b]];
+    // [ecPerBlock, blocksG1, dataG1, blocksG2, dataG2] — level M
+    const ECT = [
+      [10,1,16,0,0],[16,1,28,0,0],[26,1,44,0,0],[18,2,32,0,0],[24,2,43,0,0],
+      [16,4,27,0,0],[18,4,31,0,0],[22,2,38,2,39],[22,3,36,2,37],[26,4,43,1,44]
+    ];
+    const ALIGN = [[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50]];
+    const bytes = Array.from(new TextEncoder().encode(text));
+
+    let version = 0, ec;
+    for (let v = 1; v <= 10; v++){
+      const t = ECT[v - 1], cwCount = t[1] * t[2] + t[3] * t[4];
+      if (bytes.length * 8 + 4 + (v < 10 ? 8 : 16) <= cwCount * 8){ version = v; ec = t; break; }
+    }
+    if (!version) throw new Error('too long');
+    const size = version * 4 + 17, dataCw = ec[1] * ec[2] + ec[3] * ec[4];
+
+    const bits = [];
+    const push = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+    push(4, 4);
+    push(bytes.length, version < 10 ? 8 : 16);
+    bytes.forEach(b => push(b, 8));
+    for (let i = 0; i < 4 && bits.length < dataCw * 8; i++) bits.push(0);
+    while (bits.length % 8) bits.push(0);
+    const cw = [];
+    for (let i = 0; i < bits.length; i += 8){
+      let b = 0; for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j];
+      cw.push(b);
+    }
+    const PAD = [0xEC, 0x11];
+    for (let i = 0; cw.length < dataCw; i++) cw.push(PAD[i % 2]);
+
+    function rsGen(deg){
+      let p = [1];
+      for (let i = 0; i < deg; i++){
+        const r = new Array(p.length + 1).fill(0);
+        for (let j = 0; j < p.length; j++){ r[j] ^= p[j]; r[j + 1] ^= mul(p[j], EXP[i]); }
+        p = r;
+      }
+      return p;
+    }
+    function rsRemainder(data, n){
+      const gen = rsGen(n), res = new Uint8Array(data.length + n);
+      res.set(data);
+      for (let i = 0; i < data.length; i++){
+        const f = res[i];
+        if (f) for (let j = 0; j < gen.length; j++) res[i + j] ^= mul(gen[j], f);
+      }
+      return Array.from(res.slice(data.length));
+    }
+    const dB = [], eB = [];
+    let off = 0;
+    for (let i = 0; i < ec[1]; i++){ const b = cw.slice(off, off + ec[2]); off += ec[2]; dB.push(b); eB.push(rsRemainder(b, ec[0])); }
+    for (let i = 0; i < ec[3]; i++){ const b = cw.slice(off, off + ec[4]); off += ec[4]; dB.push(b); eB.push(rsRemainder(b, ec[0])); }
+    const finalCw = [];
+    const maxD = Math.max(...dB.map(b => b.length));
+    for (let i = 0; i < maxD; i++) dB.forEach(b => { if (i < b.length) finalCw.push(b[i]); });
+    for (let i = 0; i < ec[0]; i++) eB.forEach(b => finalCw.push(b[i]));
+    const allBits = [];
+    finalCw.forEach(b => { for (let i = 7; i >= 0; i--) allBits.push((b >> i) & 1); });
+
+    const mat = Array.from({ length: size }, () => new Array(size).fill(0));
+    const rsv = Array.from({ length: size }, () => new Array(size).fill(false));
+    function finder(r, c){
+      for (let i = -1; i <= 7; i++) for (let j = -1; j <= 7; j++){
+        const rr = r + i, cc = c + j;
+        if (rr < 0 || rr >= size || cc < 0 || cc >= size) continue;
+        const ring = (i >= 0 && i <= 6 && (j === 0 || j === 6)) || (j >= 0 && j <= 6 && (i === 0 || i === 6));
+        mat[rr][cc] = (ring || (i >= 2 && i <= 4 && j >= 2 && j <= 4)) ? 1 : 0;
+        rsv[rr][cc] = true;
+      }
+    }
+    finder(0, 0); finder(0, size - 7); finder(size - 7, 0);
+    const ap = ALIGN[version - 1];
+    for (const r of ap) for (const c of ap){
+      if ((r <= 8 && c <= 8) || (r <= 8 && c >= size - 9) || (r >= size - 9 && c <= 8)) continue;
+      for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++){
+        mat[r + i][c + j] = (Math.max(Math.abs(i), Math.abs(j)) !== 1) ? 1 : 0;
+        rsv[r + i][c + j] = true;
+      }
+    }
+    for (let i = 8; i < size - 8; i++){
+      const v = (i % 2 === 0) ? 1 : 0;
+      if (!rsv[6][i]){ mat[6][i] = v; rsv[6][i] = true; }
+      if (!rsv[i][6]){ mat[i][6] = v; rsv[i][6] = true; }
+    }
+    for (let i = 0; i <= 8; i++){ rsv[8][i] = true; rsv[i][8] = true; }
+    for (let i = 0; i < 8; i++){ rsv[8][size - 1 - i] = true; rsv[size - 1 - i][8] = true; }
+    mat[size - 8][8] = 1; rsv[size - 8][8] = true;
+    if (version >= 7){
+      for (let i = 0; i < 18; i++){
+        const r = Math.floor(i / 3), c = size - 11 + (i % 3);
+        rsv[r][c] = true; rsv[c][r] = true;
+      }
+    }
+    let bi = 0, up = true;
+    for (let col = size - 1; col > 0; col -= 2){
+      if (col === 6) col--;
+      for (let k = 0; k < size; k++){
+        const row = up ? size - 1 - k : k;
+        for (let d = 0; d < 2; d++){
+          const cc = col - d;
+          if (rsv[row][cc]) continue;
+          mat[row][cc] = bi < allBits.length ? allBits[bi++] : 0;
+        }
+      }
+      up = !up;
+    }
+    const MASKS = [
+      (r, c) => (r + c) % 2 === 0, (r) => r % 2 === 0,
+      (r, c) => c % 3 === 0, (r, c) => (r + c) % 3 === 0,
+      (r, c) => (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0,
+      (r, c) => ((r * c) % 2) + ((r * c) % 3) === 0,
+      (r, c) => (((r * c) % 2) + ((r * c) % 3)) % 2 === 0,
+      (r, c) => (((r + c) % 2) + ((r * c) % 3)) % 2 === 0
+    ];
+    const fmtBits = mask => {
+      let rem = mask << 10;
+      for (let i = 14; i >= 10; i--) if ((rem >> i) & 1) rem ^= 0x537 << (i - 10);
+      return ((mask << 10) | rem) ^ 0x5412;
+    };
+    const verBits = v => {
+      let rem = v << 12;
+      for (let i = 17; i >= 12; i--) if ((rem >> i) & 1) rem ^= 0x1F25 << (i - 12);
+      return (v << 12) | rem;
+    };
+    function penalty(m){
+      let p = 0;
+      for (let i = 0; i < size; i++) for (const dir of [0, 1]){
+        let run = 1;
+        for (let j = 1; j < size; j++){
+          const a = dir ? m[j - 1][i] : m[i][j - 1], b = dir ? m[j][i] : m[i][j];
+          if (a === b) run++; else { if (run >= 5) p += run - 2; run = 1; }
+        }
+        if (run >= 5) p += run - 2;
+      }
+      for (let r = 0; r < size - 1; r++) for (let c = 0; c < size - 1; c++){
+        const v = m[r][c];
+        if (v === m[r][c + 1] && v === m[r + 1][c] && v === m[r + 1][c + 1]) p += 3;
+      }
+      const P1 = [1,0,1,1,1,0,1,0,0,0,0], P2 = [0,0,0,0,1,0,1,1,1,0,1];
+      for (let i = 0; i < size; i++) for (let j = 0; j + 10 < size; j++){
+        let m1 = true, m2 = true, n1 = true, n2 = true;
+        for (let k = 0; k < 11; k++){
+          const h = m[i][j + k], v = m[j + k][i];
+          if (h !== P1[k]) m1 = false;
+          if (h !== P2[k]) m2 = false;
+          if (v !== P1[k]) n1 = false;
+          if (v !== P2[k]) n2 = false;
+        }
+        if (m1) p += 40; if (m2) p += 40; if (n1) p += 40; if (n2) p += 40;
+      }
+      let dark = 0;
+      for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) dark += m[r][c];
+      p += Math.floor(Math.abs(dark * 100 / (size * size) - 50) / 5) * 10;
+      return p;
+    }
+    let best = null, bestP = Infinity;
+    for (let mask = 0; mask < 8; mask++){
+      const m = mat.map(row => row.slice());
+      for (let r = 0; r < size; r++) for (let c = 0; c < size; c++){
+        if (!rsv[r][c] && MASKS[mask](r, c)) m[r][c] ^= 1;
+      }
+      const f = fmtBits(mask);
+      for (let i = 0; i <= 5; i++) m[i][8] = (f >> i) & 1;
+      m[7][8] = (f >> 6) & 1; m[8][8] = (f >> 7) & 1; m[8][7] = (f >> 8) & 1;
+      for (let i = 9; i <= 14; i++) m[8][14 - i] = (f >> i) & 1;
+      for (let i = 0; i <= 7; i++) m[8][size - 1 - i] = (f >> i) & 1;
+      for (let i = 8; i <= 14; i++) m[size - 15 + i][8] = (f >> i) & 1;
+      m[size - 8][8] = 1;
+      if (version >= 7){
+        const vb = verBits(version);
+        for (let i = 0; i < 18; i++){
+          const bit = (vb >> i) & 1, r = Math.floor(i / 3), c = size - 11 + (i % 3);
+          m[r][c] = bit; m[c][r] = bit;
+        }
+      }
+      const p = penalty(m);
+      if (p < bestP){ bestP = p; best = m; }
+    }
+    return best;
+  }
+
+  function makeQR(){
+    const url = location.origin + location.pathname;
+    const cv = document.getElementById('qr');
+    try {
+      const m = qrMatrix(url), n = m.length, quiet = 4, px = 8;
+      cv.width = (n + quiet * 2) * px;
+      cv.height = cv.width;
+      const c = cv.getContext('2d');
+      c.fillStyle = '#F4EEE2';
+      c.fillRect(0, 0, cv.width, cv.height);
+      c.fillStyle = '#141414';
+      for (let r = 0; r < n; r++) for (let col = 0; col < n; col++){
+        if (m[r][col]) c.fillRect((col + quiet) * px, (r + quiet) * px, px, px);
+      }
+    } catch (e){
+      cv.remove();
+      const p = document.createElement('p');
+      p.className = 'qr-url';
+      p.textContent = url;
+      document.querySelector('.metro-qr').prepend(p);
+    }
+  }
+
+  function initScreen(){
+    makeQR();
+    pool.forEach(d => addToWall(slimDot(d), false));
+    if (!wallCount) wallEmpty.hidden = false;
+    const tag = document.getElementById('syncTag');
+    Sync.start(d => addToWall(d, true)).then(() => {
+      tag.hidden = false;
+      tag.textContent = Sync.mode === 'cloud' ? 'live · cloud' : 'live · this device';
+    });
+  }
+
+  function applyMode(){
+    const isScreen = location.hash === '#screen';
+    document.querySelector('.kiosk').hidden = isScreen;
+    document.getElementById('metro').hidden = !isScreen;
+    document.body.classList.toggle('screen-mode', isScreen);
+    if (isScreen) initScreen();
+    else Sync.start(() => {});
+  }
+  window.addEventListener('hashchange', () => location.reload());
+
   // --- pool ---
   const grid = document.getElementById('grid');
   const countEl = document.getElementById('count');
@@ -1485,8 +1927,7 @@
 
   function savePool(){
     try {
-      const slim = pool.map(d => ({ c: d.c, e: d.e, g: d.g || null, h: d.h || null, bg: d.bg !== false, n: d.n || '', r: Array.from(d.r, v => Math.round(v * 1000) / 1000) }));
-      localStorage.setItem(KEY, JSON.stringify(slim));
+      localStorage.setItem(KEY, JSON.stringify(pool.map(slimDot)));
     } catch (e) { /* in-memory only */ }
   }
 
@@ -1519,6 +1960,7 @@
     pool.push(me);
     renderPool();
     savePool();
+    Sync.publish(me);          // → the big screen
     pendingMatch = me;
     dressCtrls.hidden = true;
     document.querySelector('.stage').hidden = true;
@@ -1539,6 +1981,7 @@
   resize();
   renderColorBar();
   loadPool();
+  applyMode();
 })();
 </script>
 </body>
