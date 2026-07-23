@@ -1570,7 +1570,16 @@
   // Cloud (Firestore, real-time) when FIREBASE_CONFIG is filled in; otherwise
   // falls back to BroadcastChannel so two tabs on one machine still demo the
   // live wall. Same API either way, so nothing else in the app changes.
-  const FIREBASE_CONFIG = null;   // paste your firebaseConfig object here to go cross-device
+  // Firebase web config is public by design — access is controlled by the
+  // Firestore security rules (read + create only, no update/delete).
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyAw285G52uPeMazqIWRoczXrmq2oOWMGQk",
+    authDomain: "people-like-us-26024.firebaseapp.com",
+    projectId: "people-like-us-26024",
+    storageBucket: "people-like-us-26024.firebasestorage.app",
+    messagingSenderId: "503481801459",
+    appId: "1:503481801459:web:147a9ee3e523688f9a3586"
+  };
 
   const slimDot = d => ({
     c: d.c, e: d.e, g: d.g || null, h: d.h || null,
@@ -1597,8 +1606,12 @@
           this._db = fs.getFirestore(appMod.initializeApp(FIREBASE_CONFIG));
           this.mode = 'cloud';
           const q = fs.query(fs.collection(this._db, 'dots'), fs.orderBy('t', 'desc'), fs.limit(300));
+          let firstBatch = true;
           fs.onSnapshot(q, snap => {
-            snap.docChanges().forEach(ch => { if (ch.type === 'added') this._cb(ch.doc.data()); });
+            snap.docChanges().forEach(ch => {
+              if (ch.type === 'added') this._cb(ch.doc.data(), firstBatch);
+            });
+            firstBatch = false;
           });
           return;
         } catch (e) { /* fall through to local */ }
@@ -1623,8 +1636,14 @@
   const wallEmpty = document.getElementById('wallEmpty');
   const tickerEl = document.getElementById('ticker');
   let wallCount = 0;
+  const WALL_CAP = 60;
 
   function addToWall(d, isNew){
+    wallCount++;
+    wallEmpty.hidden = true;
+    // existing entries arrive newest-first and are appended; live arrivals
+    // are prepended so the newest person is always top-left
+    if (!isNew && wallEl.querySelectorAll('.wall-cell').length >= WALL_CAP) return;
     const s = 240, mc = document.createElement('canvas');
     mc.width = s; mc.height = s;
     const c = mc.getContext('2d');
@@ -1638,10 +1657,12 @@
     label.className = 'wall-name';
     label.textContent = d.n || 'someone';
     cell.appendChild(label);
-    wallEl.prepend(cell);
-    wallCount++;
-    wallEmpty.hidden = true;
-    while (wallEl.querySelectorAll('.wall-cell').length > 60) wallEl.lastElementChild.remove();
+    if (isNew) wallEl.prepend(cell); else wallEl.appendChild(cell);
+    let cells = wallEl.querySelectorAll('.wall-cell');
+    while (cells.length > WALL_CAP){
+      cells[cells.length - 1].remove();
+      cells = wallEl.querySelectorAll('.wall-cell');
+    }
     if (isNew){
       tickerEl.textContent = (d.n || 'Someone') + ' just joined · ' + wallCount + ' in the pool';
       tickerEl.classList.remove('flash');
@@ -1865,12 +1886,13 @@
 
   function initScreen(){
     makeQR();
-    pool.forEach(d => addToWall(slimDot(d), false));
-    if (!wallCount) wallEmpty.hidden = false;
     const tag = document.getElementById('syncTag');
-    Sync.start(d => addToWall(d, true)).then(() => {
+    Sync.start((d, isInitial) => addToWall(d, !isInitial)).then(() => {
       tag.hidden = false;
-      tag.textContent = Sync.mode === 'cloud' ? 'live · cloud' : 'live · this device';
+      tag.textContent = Sync.mode === 'cloud' ? 'live · everyone' : 'live · this device';
+      // cloud is the source of truth; only fall back to this device's pool
+      if (Sync.mode !== 'cloud') [...pool].reverse().forEach(d => addToWall(slimDot(d), false));
+      if (!wallCount) wallEmpty.hidden = false;
     });
   }
 
