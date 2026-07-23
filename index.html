@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PLU — Make your dot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&family=Zilla+Slab:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#141414;
@@ -24,6 +24,9 @@
     --oat:#FFEDC2;
     --licorice:#47413B;
     --paper:#E7E0CF; /* UI helper only (transparent-preview stage), not a brand color */
+    /* American Typewriter is a Mac system face — exact on the studio machine,
+       Zilla Slab keeps the slab voice for everyone else */
+    --font-display:'American Typewriter','Zilla Slab',Rockwell,Georgia,serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   [hidden]{display:none!important}
@@ -1539,27 +1542,27 @@
   };
 
   // --- poster screen (#screen) ---
-  // A-series portrait sheet. Two colours, nothing else. The composition is
-  // generative: each person is already an area-conserving silhouette, they
-  // drift, and the overlaps build the only tonal range on the sheet.
-  // Options via the hash: #screen?theme=blue&comp=grid&form=figure
+  // A-series portrait sheet. The people keep their own colours and their
+  // faces — they are the content. Everything else (type, rules, code) is
+  // reduced to the quietest thing that still works, in one accent.
+  // Options via the hash: #screen?theme=blue&comp=grid
   const PW = 1240, PH = 1754;
-  const FIELD = { x: 116, y: 360, w: PW - 232, h: 980 };
-  const CAP = 60;
+  const DISPLAY = "'American Typewriter','Zilla Slab',Rockwell,Georgia,serif";
+  const FIELD = { x: 116, y: 350, w: PW - 232, h: 1000 };
+  const CAP = 16;                                  // few, large, legible faces
   const people = [], joinQueue = [];
   let posterCtx = null, hero = null, phase = 'idle', phaseT = 0, totalCount = 0, lastT = 0, qrTile = null;
 
   const HP = new URLSearchParams(location.hash.split('?')[1] || '');
   const THEMES = {
-    green: { bg:'#F4EEE2', accent:'#C6FF33', ink:'#141414', blend:'multiply' },
-    blue:  { bg:'#141414', accent:'#1E3AFF', ink:'#F4EEE2', blend:'lighter' }
+    green: { bg:'#F4EEE2', accent:'#C6FF33', ink:'#141414', contour:'#141414' },
+    blue:  { bg:'#141414', accent:'#1E3AFF', ink:'#F4EEE2', contour:null }
   };
   const TH = THEMES[HP.get('theme')] || THEMES.green;
   const COMP = HP.get('comp') || 'drift';       // drift | grid | column
-  const FORM = HP.get('form') || 'silhouette';  // silhouette | figure
 
   function personSize(){
-    return Math.max(120, Math.min(300, 1000 / Math.sqrt(people.length + 2)));
+    return Math.max(190, Math.min(360, 1180 / Math.sqrt(people.length + 2)));
   }
   function addPerson(d, isNew){
     totalCount++;
@@ -1575,12 +1578,30 @@
     if (isNew) joinQueue.push(p);
     else { people.push(p); if (people.length > CAP) people.shift(); }
   }
-  function figureOf(p){                       // only built if form=figure
+  // Cache each portrait once. On the light sheet it gets a thin Ink contour
+  // so Bone garments still read; on the dark sheet nothing is needed.
+  function figureOf(p){
     if (!p.img){
-      const s = 300, m = document.createElement('canvas');
-      m.width = m.height = s;
-      drawPortrait(m.getContext('2d'), s, p.dot);
-      p.img = m;
+      const s = 340, pad = 8, box = s + pad * 2;
+      const body = document.createElement('canvas');
+      body.width = body.height = box;
+      const bc = body.getContext('2d');
+      bc.translate(pad, pad);
+      drawPortrait(bc, s, p.dot);
+      if (!TH.contour){ p.img = body; return p.img; }
+      const ring = document.createElement('canvas');
+      ring.width = ring.height = box;
+      const rc = ring.getContext('2d');
+      for (let a = 0; a < TAU; a += Math.PI / 8) rc.drawImage(body, Math.cos(a) * 3.5, Math.sin(a) * 3.5);
+      rc.globalCompositeOperation = 'source-in';
+      rc.fillStyle = TH.contour;
+      rc.fillRect(0, 0, box, box);
+      const out = document.createElement('canvas');
+      out.width = out.height = box;
+      const oc = out.getContext('2d');
+      oc.drawImage(ring, 0, 0);
+      oc.drawImage(body, 0, 0);
+      p.img = out;
     }
     return p.img;
   }
@@ -1651,27 +1672,20 @@
     c.save();
     c.fillStyle = o.color || TH.ink;
     c.globalAlpha = o.alpha === undefined ? 1 : o.alpha;
-    c.font = o.black ? size + 'px "Archivo Black"' : '700 ' + size + 'px Archivo';
+    c.font = (o.black ? '700 ' : '400 ') + size + 'px ' + DISPLAY;
     c.textAlign = o.align || 'left';
     if (o.ls) { try { c.letterSpacing = o.ls; } catch (e) {} }
     c.fillText(s, x, y);
     c.restore();
   }
 
-  // one accent colour; overlaps are the only tone on the sheet
   function drawFig(c, p, size, t, alpha){
     const sx = 1 + 0.022 * Math.sin(t * 1.2 + p.ph) + p.sq;
     c.save();
     if (alpha !== undefined) c.globalAlpha = alpha;
     c.translate(p.x, p.y);
     c.rotate(p.sqA); c.scale(sx, 1 / sx); c.rotate(-p.sqA);   // area-preserving
-    if (FORM === 'figure'){
-      c.drawImage(figureOf(p), -size / 2, -size / 2, size, size);
-    } else {
-      tracePath(c, p.r, 0, 0, size * 0.5);
-      c.fillStyle = TH.accent;
-      c.fill();
-    }
+    c.drawImage(figureOf(p), -size / 2, -size / 2, size, size);
     c.restore();
   }
 
@@ -1706,17 +1720,15 @@
     c.fillStyle = TH.bg; c.fillRect(0, 0, PW, PH);
 
     // masthead — small, letterspaced, quiet
-    txt(c, 'PEOPLE LIKE US', M, 150, 25, { ls: '.30em' });
-    txt(c, 'COPENHAGEN', PW - M, 150, 25, { align: 'right', ls: '.24em', alpha: .5 });
-    c.fillStyle = TH.ink; c.globalAlpha = .28;
-    c.fillRect(M, 186, PW - M * 2, 2);
-    c.globalAlpha = 1;
+    txt(c, 'PEOPLE LIKE US', M, 150, 26, { black: true, ls: '.26em' });
+    txt(c, 'COPENHAGEN', PW - M, 150, 26, { align: 'right', ls: '.22em', alpha: .45 });
+    c.fillStyle = TH.accent;
+    c.fillRect(M, 186, PW - M * 2, 3);
 
-    // the field — accent only, overlaps make the tone
+    // the field — everyone in their own colour, faces legible
     const size = personSize();
     c.save();
-    c.globalCompositeOperation = TH.blend;
-    c.globalAlpha = busy ? 0.22 : 1;
+    c.globalAlpha = busy ? 0.18 : 1;
     people.forEach(p => drawFig(c, p, size, t));
     c.restore();
 
@@ -1724,7 +1736,6 @@
     const BIG = 560;
     if (hero){
       c.save();
-      c.globalCompositeOperation = TH.blend;
       if (phase === 'part'){
         const u = ease(phaseT / 0.9);
         hero.x = cx; hero.y = cy;
@@ -1752,15 +1763,14 @@
     }
 
     // foot — statement, count, code
-    c.fillStyle = TH.ink; c.globalAlpha = .28;
-    c.fillRect(M, 1452, PW - M * 2, 2);
-    c.globalAlpha = 1;
-    txt(c, 'There is always', M, 1548, 54, { black: true, alpha: busy ? .25 : 1 });
-    txt(c, 'a spot for people like us.', M, 1614, 54, { black: true, alpha: busy ? .25 : 1 });
-    txt(c, totalCount + (totalCount === 1 ? ' PERSON' : ' PEOPLE') + ' SO FAR', M, 1672, 21,
-        { ls: '.22em', alpha: busy ? .2 : .5 });
+    c.fillStyle = TH.accent;
+    c.fillRect(M, 1452, PW - M * 2, 3);
+    txt(c, 'There is always', M, 1548, 56, { black: true, alpha: busy ? .25 : 1 });
+    txt(c, 'a spot for people like us.', M, 1616, 56, { black: true, alpha: busy ? .25 : 1 });
+    txt(c, totalCount + (totalCount === 1 ? ' PERSON' : ' PEOPLE') + ' SO FAR', M, 1676, 22,
+        { ls: '.20em', alpha: busy ? .2 : .55 });
     drawQR(c, PW - M - 132, 1500, 132);
-    txt(c, 'SCAN TO JOIN', PW - M, 1672, 21, { align: 'right', ls: '.22em', alpha: .5 });
+    txt(c, 'SCAN TO JOIN', PW - M, 1676, 22, { align: 'right', ls: '.20em', alpha: .45 });
   }
 
   function tick(now){
