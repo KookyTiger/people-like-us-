@@ -121,32 +121,23 @@
     clip-path:polygon(14% 0,86% 0,97% 100%,3% 100%);
     box-shadow:inset 0 0 24px rgba(0,0,0,.06),inset 2px 0 5px rgba(255,255,255,.5),inset -2px 0 5px rgba(0,0,0,.05);
   }
-  /* --- metro ad screen mode (#screen) --- */
+  /* --- poster screen mode (#screen) --- */
   body.screen-mode{
-    background:radial-gradient(circle at 50% 40%,#2a2c30 0%,#141517 70%,#0b0c0d 100%);
+    background:#8B8B87;
     padding:0;justify-content:center;
   }
   #metro{
     position:fixed;inset:0;
     display:grid;place-items:center;
-    padding:2vmin;
+    padding:3vmin;
   }
-  /* poster stays a 16:9 landscape rectangle at any window size */
+  /* poster is an A-series PORTRAIT sheet at any window size */
   .poster-frame{
-    width:min(96vw, calc(94vh * 16 / 9));
-    aspect-ratio:16/9;
-    padding:clamp(5px,.9vmin,14px);
-    border-radius:7px;
-    background:linear-gradient(150deg,#d8d4cb,#f3f0e9 40%,#b9b5ac);
-    box-shadow:
-      0 0 0 2px #8e8a82,
-      0 0 100px 26px rgba(255,240,200,.10),
-      0 46px 90px -28px rgba(0,0,0,.85);
+    height:min(94vh, calc(92vw * 1.4142));
+    aspect-ratio:1 / 1.4142;
+    box-shadow:0 30px 70px -20px rgba(0,0,0,.5);
   }
-  #poster{
-    width:100%;height:100%;display:block;
-    border-radius:3px;background:var(--ink);
-  }
+  #poster{width:100%;height:100%;display:block}
   .sync-tag{
     position:fixed;right:10px;bottom:8px;
     font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
@@ -584,7 +575,7 @@
 
 <div id="metro" hidden>
   <div class="poster-frame">
-    <canvas id="poster" width="1920" height="1080"></canvas>
+    <canvas id="poster" width="1240" height="1754"></canvas>
   </div>
 </div>
 <span class="sync-tag" id="syncTag" hidden></span>
@@ -1548,34 +1539,79 @@
   };
 
   // --- poster screen (#screen) ---
-  // One 16:9 canvas. The crowd drifts and bumps; every squash is drawn as
-  // scale(s, 1/s), so the area is conserved by construction — the brand rule
-  // is the animation, not a decoration on top of it.
-  const PW = 1920, PH = 1080;
-  const FIELD = { x: 100, y: 196, w: PW - 200, h: 648 };
+  // A-series portrait sheet. Two colours, nothing else. The composition is
+  // generative: each person is already an area-conserving silhouette, they
+  // drift, and the overlaps build the only tonal range on the sheet.
+  // Options via the hash: #screen?theme=blue&comp=grid&form=figure
+  const PW = 1240, PH = 1754;
+  const FIELD = { x: 116, y: 360, w: PW - 232, h: 980 };
   const CAP = 60;
   const people = [], joinQueue = [];
   let posterCtx = null, hero = null, phase = 'idle', phaseT = 0, totalCount = 0, lastT = 0, qrTile = null;
 
+  const HP = new URLSearchParams(location.hash.split('?')[1] || '');
+  const THEMES = {
+    green: { bg:'#F4EEE2', accent:'#C6FF33', ink:'#141414', blend:'multiply' },
+    blue:  { bg:'#141414', accent:'#1E3AFF', ink:'#F4EEE2', blend:'lighter' }
+  };
+  const TH = THEMES[HP.get('theme')] || THEMES.green;
+  const COMP = HP.get('comp') || 'drift';       // drift | grid | column
+  const FORM = HP.get('form') || 'silhouette';  // silhouette | figure
+
   function personSize(){
-    return Math.max(96, Math.min(232, 1180 / Math.sqrt(people.length + 2)));
+    return Math.max(120, Math.min(300, 1000 / Math.sqrt(people.length + 2)));
   }
   function addPerson(d, isNew){
     totalCount++;
+    const dd = hydrate(d);
     const p = {
-      img: (() => { const s = 260, m = document.createElement('canvas'); m.width = m.height = s;
-                    drawPortrait(m.getContext('2d'), s, hydrate(d)); return m; })(),
+      r: dd.r, dot: dd,
       name: d.n || 'someone',
       x: FIELD.x + Math.random() * FIELD.w,
       y: FIELD.y + Math.random() * FIELD.h,
-      vx: (Math.random() - .5) * 60, vy: (Math.random() - .5) * 44,
+      vx: (Math.random() - .5) * 46, vy: (Math.random() - .5) * 34,
       sq: 0, sqA: Math.random() * TAU, ph: Math.random() * TAU
     };
     if (isNew) joinQueue.push(p);
     else { people.push(p); if (people.length > CAP) people.shift(); }
   }
+  function figureOf(p){                       // only built if form=figure
+    if (!p.img){
+      const s = 300, m = document.createElement('canvas');
+      m.width = m.height = s;
+      drawPortrait(m.getContext('2d'), s, p.dot);
+      p.img = m;
+    }
+    return p.img;
+  }
+
+  // generative layouts — grid and column pull toward a lattice, drift is free
+  function layout(dt){
+    const n = people.length;
+    if (!n) return;
+    const k = Math.min(1, dt * 2.6);
+    if (COMP === 'grid'){
+      const cols = Math.min(5, Math.max(2, Math.round(Math.sqrt(n * 0.8))));
+      const rows = Math.ceil(n / cols);
+      const cw = FIELD.w / cols, ch = Math.min(FIELD.h / rows, cw * 1.15);
+      const oy = FIELD.y + (FIELD.h - ch * rows) / 2;
+      people.forEach((p, i) => {
+        const gx = FIELD.x + (i % cols + 0.5) * cw;
+        const gy = oy + (Math.floor(i / cols) + 0.5) * ch;
+        p.x += (gx - p.x) * k; p.y += (gy - p.y) * k;
+      });
+    } else if (COMP === 'column'){
+      const gap = Math.min(FIELD.h / Math.max(n - 1, 1), 190);
+      const oy = FIELD.y + (FIELD.h - gap * (n - 1)) / 2;
+      people.forEach((p, i) => {
+        const gx = PW / 2 + Math.sin(i * 0.8) * FIELD.w * 0.20;
+        p.x += (gx - p.x) * k; p.y += (oy + i * gap - p.y) * k;
+      });
+    }
+  }
 
   function physics(dt){
+    if (COMP !== 'drift'){ layout(dt); for (const p of people) p.sq *= Math.exp(-3.4 * dt); return; }
     const R = personSize() * 0.34;
     const parting = (phase === 'part' || phase === 'hero' || phase === 'formula');
     const cx = PW / 2, cy = FIELD.y + FIELD.h / 2;
@@ -1613,7 +1649,7 @@
   function txt(c, s, x, y, size, o){
     o = o || {};
     c.save();
-    c.fillStyle = o.color || '#F4EEE2';
+    c.fillStyle = o.color || TH.ink;
     c.globalAlpha = o.alpha === undefined ? 1 : o.alpha;
     c.font = o.black ? size + 'px "Archivo Black"' : '700 ' + size + 'px Archivo';
     c.textAlign = o.align || 'left';
@@ -1622,20 +1658,27 @@
     c.restore();
   }
 
+  // one accent colour; overlaps are the only tone on the sheet
   function drawFig(c, p, size, t, alpha){
-    const sx = 1 + 0.024 * Math.sin(t * 1.5 + p.ph) + p.sq;
+    const sx = 1 + 0.022 * Math.sin(t * 1.2 + p.ph) + p.sq;
     c.save();
     if (alpha !== undefined) c.globalAlpha = alpha;
     c.translate(p.x, p.y);
     c.rotate(p.sqA); c.scale(sx, 1 / sx); c.rotate(-p.sqA);   // area-preserving
-    c.drawImage(p.img, -size / 2, -size / 2, size, size);
+    if (FORM === 'figure'){
+      c.drawImage(figureOf(p), -size / 2, -size / 2, size, size);
+    } else {
+      tracePath(c, p.r, 0, 0, size * 0.5);
+      c.fillStyle = TH.accent;
+      c.fill();
+    }
     c.restore();
   }
 
-  function drawQRCard(c, x, y, w){
+  function drawQR(c, x, y, w){
     if (qrTile === null){
       try {
-        const m = qrMatrix(location.origin + location.pathname), n = m.length, q = 3, px = 6;
+        const m = qrMatrix(location.origin + location.pathname), n = m.length, q = 2, px = 6;
         const t = document.createElement('canvas');
         t.width = t.height = (n + q * 2) * px;
         const g = t.getContext('2d');
@@ -1647,56 +1690,77 @@
       } catch (e) { qrTile = false; }
     }
     if (!qrTile) return;
-    c.fillStyle = '#F4EEE2';
-    c.beginPath(); c.roundRect(x, y, w, w + 44, 12); c.fill();
+    c.save();
+    c.fillStyle = '#F4EEE2'; c.fillRect(x, y, w, w);   // quiet zone doubles as the card
     c.imageSmoothingEnabled = false;
-    c.drawImage(qrTile, x + 15, y + 15, w - 30, w - 30);
-    c.imageSmoothingEnabled = true;
-    txt(c, 'SCAN · MAKE YOURS', x + w / 2, y + w + 28, 18, { color: '#141414', align: 'center', ls: '.09em' });
+    c.drawImage(qrTile, x, y, w, w);
+    c.restore();
   }
 
   const ease = u => 1 - Math.pow(1 - Math.min(1, Math.max(0, u)), 3);
 
   function renderPoster(t){
     const c = posterCtx;
-    c.fillStyle = '#141414'; c.fillRect(0, 0, PW, PH);
-    txt(c, 'People like us.', 100, 122, 78, { black: true });
-    txt(c, 'COPENHAGEN · ALCOHOL-FREE', PW - 100, 114, 22, { align: 'right', ls: '.22em', alpha: .72 });
-    c.fillStyle = '#F4EEE2'; c.fillRect(100, 152, PW - 200, 4);
+    const M = 116;                                   // one margin governs the sheet
+    const busy = (phase === 'part' || phase === 'hero' || phase === 'formula');
+    c.fillStyle = TH.bg; c.fillRect(0, 0, PW, PH);
 
+    // masthead — small, letterspaced, quiet
+    txt(c, 'PEOPLE LIKE US', M, 150, 25, { ls: '.30em' });
+    txt(c, 'COPENHAGEN', PW - M, 150, 25, { align: 'right', ls: '.24em', alpha: .5 });
+    c.fillStyle = TH.ink; c.globalAlpha = .28;
+    c.fillRect(M, 186, PW - M * 2, 2);
+    c.globalAlpha = 1;
+
+    // the field — accent only, overlaps make the tone
     const size = personSize();
+    c.save();
+    c.globalCompositeOperation = TH.blend;
+    c.globalAlpha = busy ? 0.22 : 1;
     people.forEach(p => drawFig(c, p, size, t));
+    c.restore();
 
-    const cx = PW / 2, cy = FIELD.y + FIELD.h / 2;
+    const cx = PW / 2, cy = FIELD.y + FIELD.h * 0.44;
+    const BIG = 560;
     if (hero){
+      c.save();
+      c.globalCompositeOperation = TH.blend;
       if (phase === 'part'){
         const u = ease(phaseT / 0.9);
-        hero.x = cx; hero.y = cy - 40;
-        drawFig(c, hero, 430 * u, t, u);
-      } else if (phase === 'hero'){
-        hero.x = cx; hero.y = cy - 40;
-        drawFig(c, hero, 430, t);
-        const a = Math.min(1, phaseT / 0.35);
-        txt(c, 'people like ' + hero.name + '.', cx, cy + 300, 84, { black: true, align: 'center', alpha: a });
-      } else if (phase === 'formula'){
-        const a = Math.max(0, 1 - phaseT / 0.5);
-        if (a > 0){ hero.x = cx; hero.y = cy - 40; drawFig(c, hero, 430, t, a); }
-        const fa = Math.min(1, phaseT / 0.45);
-        txt(c, 'People like you + people like me', cx, cy - 20, 82, { black: true, align: 'center', alpha: fa });
-        txt(c, '= people like us', cx, cy + 96, 82, { black: true, align: 'center', alpha: fa });
+        hero.x = cx; hero.y = cy;
+        drawFig(c, hero, BIG * u, t, u);
+      } else if (phase === 'hero' || phase === 'formula'){
+        hero.x = cx; hero.y = cy;
+        drawFig(c, hero, BIG, t, phase === 'formula' ? Math.max(0, 1 - phaseT / 0.5) : 1);
       } else if (phase === 'settle'){
         const u = ease(phaseT / 1.1);
         hero.x = cx + (hero.tx - cx) * u;
-        hero.y = (cy - 40) + (hero.ty - (cy - 40)) * u;
-        drawFig(c, hero, 430 + (size - 430) * u, t);
+        hero.y = cy + (hero.ty - cy) * u;
+        drawFig(c, hero, BIG + (size - BIG) * u, t);
+      }
+      c.restore();
+      if (phase === 'hero'){
+        const a = Math.min(1, phaseT / 0.4);
+        txt(c, 'PEOPLE LIKE', cx, cy + BIG * 0.52 + 66, 24, { align: 'center', ls: '.34em', alpha: a * .6 });
+        txt(c, hero.name, cx, cy + BIG * 0.52 + 148, 76, { black: true, align: 'center', alpha: a });
+      } else if (phase === 'formula'){
+        const fa = Math.min(1, phaseT / 0.45);
+        ['people like you', '+ people like me', '= people like us'].forEach((s, i) => {
+          txt(c, s, cx, cy - 60 + i * 96, 62, { black: true, align: 'center', alpha: fa });
+        });
       }
     }
 
-    c.fillStyle = '#F4EEE2'; c.fillRect(100, 880, PW - 200, 4);
-    const quiet = (phase === 'idle' || phase === 'settle') ? 1 : 0.15;
-    txt(c, 'There is always a spot for people like us.', 100, 962, 46, { black: true, alpha: quiet });
-    txt(c, totalCount + (totalCount === 1 ? ' PERSON' : ' PEOPLE') + ' SO FAR', 100, 1012, 22, { ls: '.18em', alpha: .6 * quiet });
-    drawQRCard(c, PW - 100 - 190, 902, 190);
+    // foot — statement, count, code
+    c.fillStyle = TH.ink; c.globalAlpha = .28;
+    c.fillRect(M, 1452, PW - M * 2, 2);
+    c.globalAlpha = 1;
+    txt(c, 'There is always', M, 1548, 54, { black: true, alpha: busy ? .25 : 1 });
+    txt(c, 'a spot for people like us.', M, 1614, 54, { black: true, alpha: busy ? .25 : 1 });
+    txt(c, totalCount + (totalCount === 1 ? ' PERSON' : ' PEOPLE') + ' SO FAR', M, 1672, 21,
+        { ls: '.22em', alpha: busy ? .2 : .5 });
+    drawQR(c, PW - M - 132, 1500, 132);
+    txt(c, 'SCAN TO JOIN', PW - M, 1672, 21, { align: 'right', ls: '.22em', alpha: .5 });
   }
 
   function tick(now){
@@ -1922,7 +1986,7 @@
   }
 
   function applyMode(){
-    const isScreen = location.hash === '#screen';
+    const isScreen = location.hash.indexOf('#screen') === 0;
     document.querySelector('.kiosk').hidden = isScreen;
     document.getElementById('metro').hidden = !isScreen;
     document.body.classList.toggle('screen-mode', isScreen);
