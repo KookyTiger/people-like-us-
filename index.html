@@ -5,21 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PLU — Make your dot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&family=Zilla+Slab:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* anchors — every stroke, feature and piece of type */
     --ink:#141414;
-    --bone:#FAF7EC;
-    /* the six — as printed on the cans (Carl / Astrid / Lulu) */
-    --red:#E63228;
-    --yellow:#FAC846;
-    --acid:#D2FA5A;
-    --sky:#5ABEFA;
-    --magenta:#E632FA;
-    --pink:#F0508C;
-    --paper:#EDE9DA; /* UI helper only (transparent-preview stage), not a brand color */
-    --font-display:'American Typewriter','Zilla Slab',Rockwell,'Courier New',Georgia,serif;
+    --bone:#F4EEE2;
+    --pink:#FF3D8B;
+    --ember:#FF4A17;
+    --acid:#C6FF33;
+    --blue:#1E3AFF;
+    --rave:#9D3CFF;
+    --fizz:#29F0C8;
+    --toffee:#C4802F;
+    --yolk:#FFC300;
+    --pool:#19C5FF;
+    --cherry:#E62144;
+    --clover:#3DFF6E;
+    --oat:#FFEDC2;
+    --licorice:#47413B;
+    --paper:#E7E0CF; /* UI helper only (transparent-preview stage), not a brand color */
   }
   *{box-sizing:border-box;margin:0;padding:0}
   [hidden]{display:none!important}
@@ -127,21 +131,21 @@
     display:grid;place-items:center;
     padding:2vmin;
   }
-  /* poster stays an A-series PORTRAIT rectangle (1 : 1.414) at any window size */
+  /* poster stays a 16:9 landscape rectangle at any window size */
   .poster-frame{
-    height:min(94vh, calc(96vw * 1.4142));
-    aspect-ratio:1 / 1.4142;
+    width:min(96vw, calc(94vh * 16 / 9));
+    aspect-ratio:16/9;
     padding:clamp(5px,.9vmin,14px);
-    border-radius:5px;
+    border-radius:7px;
     background:linear-gradient(150deg,#d8d4cb,#f3f0e9 40%,#b9b5ac);
     box-shadow:
       0 0 0 2px #8e8a82,
-      0 0 100px 26px rgba(255,240,200,.08),
+      0 0 100px 26px rgba(255,240,200,.10),
       0 46px 90px -28px rgba(0,0,0,.85);
   }
   #poster{
     width:100%;height:100%;display:block;
-    border-radius:2px;background:var(--bone);
+    border-radius:3px;background:var(--ink);
   }
   .sync-tag{
     position:fixed;right:10px;bottom:8px;
@@ -169,8 +173,7 @@
     padding-bottom:8px;
   }
   h1{
-    font-family:var(--font-display);
-    font-weight:700;
+    font-family:'Archivo Black',sans-serif;
     font-size:clamp(34px,9vw,46px);
     line-height:1.02;
     letter-spacing:-.01em;
@@ -228,6 +231,7 @@
     flex:0 0 auto;
     transition:transform .12s ease;
   }
+  .swatch[data-c="#FFEDC2"]:not([aria-pressed="true"]){border-color:rgba(20,20,20,.18)}  /* cream needs an outline on the bone page */
   .swatch[aria-pressed="true"]{border-color:var(--ink);transform:scale(1.12)}
   .swatch:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 
@@ -429,12 +433,19 @@
   </div>
 
   <div class="row swatches" role="group" aria-label="Pick a color">
-    <button class="swatch" data-c="#E63228" style="background:#E63228" aria-label="Red" aria-pressed="true"></button>
-    <button class="swatch" data-c="#FAC846" style="background:#FAC846" aria-label="Yellow" aria-pressed="false"></button>
-    <button class="swatch" data-c="#D2FA5A" style="background:#D2FA5A" aria-label="Acid green" aria-pressed="false"></button>
-    <button class="swatch" data-c="#5ABEFA" style="background:#5ABEFA" aria-label="Sky blue" aria-pressed="false"></button>
-    <button class="swatch" data-c="#E632FA" style="background:#E632FA" aria-label="Magenta" aria-pressed="false"></button>
-    <button class="swatch" data-c="#F0508C" style="background:#F0508C" aria-label="Pink" aria-pressed="false"></button>
+    <button class="swatch" data-c="#FF3D8B" style="background:#FF3D8B" aria-label="Shock Pink" aria-pressed="true"></button>
+    <button class="swatch" data-c="#FF4A17" style="background:#FF4A17" aria-label="Ember" aria-pressed="false"></button>
+    <button class="swatch" data-c="#C6FF33" style="background:#C6FF33" aria-label="Acid" aria-pressed="false"></button>
+    <button class="swatch" data-c="#1E3AFF" style="background:#1E3AFF" aria-label="Volt Blue" aria-pressed="false"></button>
+    <button class="swatch" data-c="#9D3CFF" style="background:#9D3CFF" aria-label="Rave" aria-pressed="false"></button>
+    <button class="swatch" data-c="#29F0C8" style="background:#29F0C8" aria-label="Fizz" aria-pressed="false"></button>
+    <button class="swatch" data-c="#3DFF6E" style="background:#3DFF6E" aria-label="Clover" aria-pressed="false"></button>
+    <button class="swatch" data-c="#C4802F" style="background:#C4802F" aria-label="Toffee" aria-pressed="false"></button>
+    <button class="swatch" data-c="#FFC300" style="background:#FFC300" aria-label="Yolk" aria-pressed="false"></button>
+    <button class="swatch" data-c="#19C5FF" style="background:#19C5FF" aria-label="Pool" aria-pressed="false"></button>
+    <button class="swatch" data-c="#E62144" style="background:#E62144" aria-label="Cherry" aria-pressed="false"></button>
+    <button class="swatch" data-c="#FFEDC2" style="background:#FFEDC2" aria-label="Oat" aria-pressed="false"></button>
+    <button class="swatch" data-c="#47413B" style="background:#47413B" aria-label="Licorice" aria-pressed="false"></button>
   </div>
 
   <div class="chips" id="eyeChips">
@@ -573,7 +584,7 @@
 
 <div id="metro" hidden>
   <div class="poster-frame">
-    <canvas id="poster" width="1240" height="1754"></canvas>
+    <canvas id="poster" width="1920" height="1080"></canvas>
   </div>
 </div>
 <span class="sync-tag" id="syncTag" hidden></span>
@@ -586,12 +597,13 @@
   const A0 = 0.5 * N * Math.sin(dA); // area of unit circle polygon
   const MIN_R = 0.32, MAX_R = 1.72;
 
-  // the six, exactly as printed on the cans
   const COLORS = {
-    red:'#E63228', yellow:'#FAC846', acid:'#D2FA5A',
-    sky:'#5ABEFA', magenta:'#E632FA', pink:'#F0508C'
+    pink:'#FF3D8B', ember:'#FF4A17', acid:'#C6FF33', blue:'#1E3AFF',
+    rave:'#9D3CFF', fizz:'#29F0C8', clover:'#3DFF6E', toffee:'#C4802F',
+    yolk:'#FFC300', pool:'#19C5FF', cherry:'#E62144', oat:'#FFEDC2',
+    licorice:'#47413B'
   };
-  let color = COLORS.red;
+  let color = COLORS.pink;
   let eyeStyle = 'none';
   let eyeX = 0;        // -1 … 1, left to right
   let eyeY = -0.22;    // negative = up
@@ -603,67 +615,74 @@
   let pool = [];
 
   // --- portrait step state ---
-  // ONE palette for the whole system: the six + Ink + Bone. Nothing else is
-  // allowed anywhere — faces, clothes and hair all draw from the same set,
-  // and a live contrast gate stops hair from disappearing into the face.
-  const INKC = '#141414', BONEC = '#FAF7EC';
-  const P = { ...COLORS, ink:INKC, bone:BONEC };
+  // sorbet tones: clothes + accessory accents only. Muted on purpose —
+  // neon belongs to the face (the person), the outfit never upstages it.
+  const SORBET = { pink:'#FFB3D1', peach:'#FFC9A3', lime:'#EEFA9E', peri:'#AEB8FF', lilac:'#D9B8FF', mint:'#B2F5DC' };
+  // everyday neutrals — ONE warm grey ladder (light/mid/deep) shared by
+  // garments and hair, instead of four ad-hoc greys
+  const GREY = { light:'#B6B1A8', mid:'#A8A29A', deep:'#9C978E' };
+  const INKC = '#141414', BONEC = '#F4EEE2';
   // wardrobe: style → colorways (base + pattern/pocket accents), shop-style
   const GARMENTS = {
     tee:    { colors: {
-      bone:{ base:P.bone }, sky:{ base:P.sky }, pink:{ base:P.pink },
-      yellow:{ base:P.yellow }, ink:{ base:P.ink }
+      peri:{ base:SORBET.peri }, pink:{ base:SORBET.pink },
+      mint:{ base:SORBET.mint }, peach:{ base:SORBET.peach },
+      grey:{ base:GREY.light }
     } },
     stripe: { colors: {
-      ink: { base:P.bone, pat:P.ink },  sky:{ base:P.sky, pat:P.bone },
-      pink:{ base:P.pink, pat:P.bone }, acid:{ base:P.acid, pat:P.ink }
+      ink: { base:BONEC, pat:INKC },  peri:{ base:SORBET.peri, pat:BONEC },
+      pink:{ base:SORBET.pink, pat:BONEC }, mint:{ base:SORBET.mint, pat:INKC }
     } },
     suit:   { colors: {
-      ink:{ base:P.ink }, red:{ base:P.red }, sky:{ base:P.sky }
+      grey:{ base:GREY.mid }, peri:{ base:SORBET.peri }, lilac:{ base:SORBET.lilac }
     } },
     polka:  { colors: {
-      bone:{ base:P.bone, pat:P.ink }, pink:{ base:P.pink, pat:P.bone },
-      sky:{ base:P.sky, pat:P.bone }, acid:{ base:P.acid, pat:P.ink },
-      magenta:{ base:P.magenta, pat:P.bone }
+      pink:{ base:SORBET.pink, pat:BONEC }, bone:{ base:BONEC, pat:INKC },
+      peri:{ base:SORBET.peri, pat:BONEC }, mint:{ base:SORBET.mint, pat:INKC },
+      lime:{ base:SORBET.lime, pat:INKC }
     } },
     hoodie: { colors: {
-      sky:{ base:P.sky, pocket:P.ink }, pink:{ base:P.pink, pocket:P.ink },
-      acid:{ base:P.acid, pocket:P.ink }, bone:{ base:P.bone, pocket:P.ink }
+      grey:{ base:GREY.light, pocket:GREY.deep },
+      peri:{ base:SORBET.peri, pocket:'#8E9BE8' },
+      pink:{ base:SORBET.pink, pocket:'#EC93BC' }
     } },
     school: { colors: {
-      sky:{ base:P.sky }, pink:{ base:P.pink }, magenta:{ base:P.magenta }
+      peri:{ base:SORBET.peri }, pink:{ base:SORBET.pink }, mint:{ base:SORBET.mint }
     } },
     chef:   { colors: {
-      bone:{ base:P.bone }, yellow:{ base:P.yellow }
+      bone:{ base:BONEC }, grey:{ base:GREY.light }
     } },
     punk:   { colors: {
-      ink:{ base:P.ink }, red:{ base:P.red }
+      black:{ base:'#4A443E' }, grey:{ base:GREY.deep }
     } },
     hipster:{ colors: {
-      red:{ base:P.red }, acid:{ base:P.acid }, yellow:{ base:P.yellow }
+      peach:{ base:SORBET.peach }, mint:{ base:SORBET.mint }, lilac:{ base:SORBET.lilac }
     } },
     maiden: { colors: {
-      pink:{ base:P.pink }, sky:{ base:P.sky }, magenta:{ base:P.magenta }
+      peri:{ base:SORBET.peri }, pink:{ base:SORBET.pink }, lilac:{ base:SORBET.lilac }
     } },
     super:  { colors: {
-      sky:{ base:P.sky }, red:{ base:P.red }
+      hero:{ base:SORBET.peri }
     } },
     naked:  { colors: {
       skin:{}   /* base = the face color: naked IS the person */
     } }
   };
-  // hair draws from the same eight; the contrast gate keeps it off the face color
+  // hair: naturals + a few sorbet dye-jobs. Never the face neons, so hair
+  // can't collide with the person by construction; a live contrast gate
+  // additionally greys out anything too close to the current face color.
   const HAIR_COLORS = {
-    ink:P.ink, bone:P.bone, red:P.red, yellow:P.yellow,
-    acid:P.acid, sky:P.sky, magenta:P.magenta, pink:P.pink
+    black:'#4A443E', brown:'#6E4A26', rust:'#B3492B', caramel:'#A9722E',
+    blonde:'#E9C46A', grey:GREY.mid, bone:'#F4EEE2',
+    peri:SORBET.peri, pink:SORBET.pink, lilac:SORBET.lilac
   };
   let step = 'face';       // 'face' | 'dress'
   let garmentStyle = 'tee';
-  let garmentColor = 'bone';
+  let garmentColor = 'peri';
   const gid = () => garmentStyle + ':' + garmentColor;
   let hairType = 'none';   // 'none' | 'girl' | 'boy'
   let hairStyle = null;
-  let hairColor = 'ink';
+  let hairColor = 'black';
   const hid = () => hairType === 'none' ? null : hairType + ':' + hairStyle + ':' + hairColor;
   let hasBg = true;        // black canvas background; false = transparent (PNG exports with no background)
   const FACE = { x:0.5, y:0.42, r:0.27 };  // face placement in portrait step — face dominates, torso is backdrop
@@ -743,7 +762,7 @@
 
   function drawEyes(c, r, x0, y0, scale, e){
     if (!e || !e.s || e.s === 'none') return;
-    const INK = '#141414', BONE = '#FAF7EC';
+    const INK = '#141414', BONE = '#F4EEE2';
     const ex = e.x || 0, ey = e.y || 0;
     const sz = e.sz || 1, g = e.g || 1;
     const rr = rAt(r, ex < 0 ? Math.PI : 0);
@@ -786,19 +805,21 @@
       const [s, k] = g.split(':');
       if (GARMENTS[s] && GARMENTS[s].colors[k]) return [s, k];
     }
-    // legacy id, or a colourway that no longer exists → first colourway of
-    // that style, so old entries still wear something on-palette
-    if (g){
-      const s = g.split(/[:-]/)[0];
-      if (GARMENTS[s]) return [s, Object.keys(GARMENTS[s].colors)[0]];
-      if (s === 'turtle') return ['tee', 'bone'];
-    }
-    return ['tee', 'bone'];
+    const LEGACY = {
+      'tee':['tee','peri'], 'turtle':['tee','peri'],
+      'stripe':['stripe','ink'], 'stripe-ink':['stripe','ink'],
+      'stripe-peri':['stripe','peri'], 'stripe-pink':['stripe','pink'],
+      'suit':['suit','grey'],
+      'polka':['polka','pink'], 'polka-pink':['polka','pink'],
+      'polka-bone':['polka','bone'], 'polka-peri':['polka','peri'],
+      'hoodie':['hoodie','grey']
+    };
+    return LEGACY[g] || ['tee', 'peri'];
   }
 
   function drawGarment(c, S, style, colKey, faceCol){
     const spec = GARMENTS[style].colors[colKey] || {};
-    const base = spec.base || faceCol || P.sky;
+    const base = spec.base || faceCol || SORBET.peri;
     c.save();
     torsoPath(c, S); c.clip();
     torsoPath(c, S); c.fillStyle = base; c.fill();
@@ -857,7 +878,7 @@
       for (let x = 0.60; x <= 0.765; x += 0.045){
         c.beginPath(); c.arc(x * S, 0.685 * S, 0.011 * S, 0, TAU); c.fill();
       }
-      c.fillStyle = P.magenta;
+      c.fillStyle = SORBET.pink;
       c.beginPath(); c.arc(0.36 * S, 0.76 * S, 0.018 * S, 0, TAU); c.fill();
     } else if (style === 'hipster'){
       // checkered flannel
@@ -877,7 +898,7 @@
       c.beginPath(); c.arc(0.58 * S, 0.70 * S, 0.014 * S, 0, TAU); c.fill();
     } else if (style === 'super'){
       // cape edges + chest diamond
-      c.fillStyle = P.red;
+      c.fillStyle = SORBET.pink;
       c.fillRect(0.04 * S, 0.66 * S, 0.10 * S, 0.40 * S);
       c.fillRect(0.86 * S, 0.66 * S, 0.10 * S, 0.40 * S);
       c.beginPath(); c.moveTo(0.5 * S, 0.71 * S); c.lineTo(0.61 * S, 0.80 * S);
@@ -1001,7 +1022,7 @@
         c.restore();
         const by = Math.min(ty + 0.125, hairEyeY - 0.02);
         hRect(c,S,k,0.235,by,0.53,0.042,0.021);
-        const pc = lum(k) > 0.35 ? '#141414' : '#FAF7EC';
+        const pc = lum(k) > 0.35 ? '#141414' : '#F4EEE2';
         hDot(c,S,pc,0.41,ty - 0.02,0.016);
         hDot(c,S,pc,0.52,ty - 0.07,0.016);
         hDot(c,S,pc,0.61,ty - 0.01,0.016);
@@ -1020,7 +1041,7 @@
   function parseHair(h){
     if (!h) return null;
     const [t, s, k] = h.split(':');
-    if (HAIR[t] && HAIR[t][s]) return { t, s, k: snapHairKey(k) };
+    if (HAIR[t] && HAIR[t][s] && HAIR_COLORS[k]) return { t, s, k };
     return null;
   }
 
@@ -1379,7 +1400,7 @@
   function drawMatchCard(me, other, score){
     const c = matchCv.getContext('2d');
     const W = matchCv.width, H = matchCv.height;
-    const INK = '#141414', BONE = '#FAF7EC';
+    const INK = '#141414', BONE = '#F4EEE2';
     c.fillStyle = INK;
     c.fillRect(0, 0, W, H);
     c.textAlign = 'center';
@@ -1453,7 +1474,7 @@
     pendingMatch = null;
     radii.fill(1);
     garmentStyle = 'tee';
-    garmentColor = 'bone';
+    garmentColor = 'peri';
     syncOutfitChips();
     hairType = 'none';
     syncHairUI();
@@ -1476,33 +1497,12 @@
     appId: "1:503481801459:web:147a9ee3e523688f9a3586"
   };
 
-  // Legacy entries were made with the old 13-neon palette. Snap any colour
-  // that isn't one of the six to its nearest sibling, so nothing off-palette
-  // can ever reach the poster.
-  const PALETTE_HEX = Object.values(COLORS);
-  function snapColor(hex){
-    if (!hex) return COLORS.red;
-    if (PALETTE_HEX.indexOf(hex.toUpperCase()) >= 0) return hex.toUpperCase();
-    const n = parseInt(hex.slice(1), 16);
-    const r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255;
-    let best = COLORS.red, bd = Infinity;
-    for (const h of PALETTE_HEX){
-      const m = parseInt(h.slice(1), 16);
-      const d = Math.hypot((m >> 16 & 255) - r, (m >> 8 & 255) - g, (m & 255) - b);
-      if (d < bd){ bd = d; best = h; }
-    }
-    return best;
-  }
-  function snapHairKey(k){
-    return HAIR_COLORS[k] ? k : 'ink';
-  }
-
   const slimDot = d => ({
     c: d.c, e: d.e, g: d.g || null, h: d.h || null,
     bg: d.bg !== false, n: d.n || '',
     r: Array.from(d.r, v => Math.round(v * 1000) / 1000)
   });
-  const hydrate = d => ({ ...d, c: snapColor(d.c), r: Float64Array.from(d.r) });
+  const hydrate = d => ({ ...d, r: Float64Array.from(d.r) });
 
   const Sync = {
     mode: 'local',
@@ -1551,45 +1551,20 @@
   // One 16:9 canvas. The crowd drifts and bumps; every squash is drawn as
   // scale(s, 1/s), so the area is conserved by construction — the brand rule
   // is the animation, not a decoration on top of it.
-  const PW = 1240, PH = 1754;                       // A-series portrait
-  const DISPLAY = "'American Typewriter','Zilla Slab',Rockwell,Georgia,serif";
-  const FIELD = { x: 70, y: 520, w: PW - 140, h: 960 };
-  const CHANT = 'There is ALWAYS a spot for People Like Us. ';
+  const PW = 1920, PH = 1080;
+  const FIELD = { x: 100, y: 196, w: PW - 200, h: 648 };
   const CAP = 60;
   const people = [], joinQueue = [];
   let posterCtx = null, hero = null, phase = 'idle', phaseT = 0, totalCount = 0, lastT = 0, qrTile = null;
 
   function personSize(){
-    return Math.max(84, Math.min(205, 830 / Math.sqrt(people.length + 2)));
-  }
-
-  // Cache each figure once, with an Ink contour behind it (Ink carries every
-  // stroke in this palette) so Bone garments still read on the Bone poster.
-  function makeFigure(d){
-    const s = 300, pad = 12, out = document.createElement('canvas');
-    out.width = out.height = s + pad * 2;
-    const body = document.createElement('canvas');
-    body.width = body.height = s + pad * 2;
-    const bc = body.getContext('2d');
-    bc.translate(pad, pad);                               // centre the figure in the padded box
-    drawPortrait(bc, s, hydrate(d));
-    const ring = document.createElement('canvas');
-    ring.width = ring.height = s + pad * 2;
-    const rc = ring.getContext('2d');
-    const w = 5;
-    for (let a = 0; a < TAU; a += Math.PI / 8) rc.drawImage(body, Math.cos(a) * w, Math.sin(a) * w);
-    rc.globalCompositeOperation = 'source-in';
-    rc.fillStyle = INKC;
-    rc.fillRect(0, 0, ring.width, ring.height);
-    const oc = out.getContext('2d');
-    oc.drawImage(ring, 0, 0);
-    oc.drawImage(body, 0, 0);
-    return out;
+    return Math.max(96, Math.min(232, 1180 / Math.sqrt(people.length + 2)));
   }
   function addPerson(d, isNew){
     totalCount++;
     const p = {
-      img: makeFigure(d),
+      img: (() => { const s = 260, m = document.createElement('canvas'); m.width = m.height = s;
+                    drawPortrait(m.getContext('2d'), s, hydrate(d)); return m; })(),
       name: d.n || 'someone',
       x: FIELD.x + Math.random() * FIELD.w,
       y: FIELD.y + Math.random() * FIELD.h,
@@ -1601,7 +1576,7 @@
   }
 
   function physics(dt){
-    const R = personSize() * 0.40;
+    const R = personSize() * 0.34;
     const parting = (phase === 'part' || phase === 'hero' || phase === 'formula');
     const cx = PW / 2, cy = FIELD.y + FIELD.h / 2;
     for (const p of people){
@@ -1638,44 +1613,12 @@
   function txt(c, s, x, y, size, o){
     o = o || {};
     c.save();
+    c.fillStyle = o.color || '#F4EEE2';
     c.globalAlpha = o.alpha === undefined ? 1 : o.alpha;
-    c.font = (o.black ? '700 ' : '400 ') + size + 'px ' + DISPLAY;
+    c.font = o.black ? size + 'px "Archivo Black"' : '700 ' + size + 'px Archivo';
     c.textAlign = o.align || 'left';
     if (o.ls) { try { c.letterSpacing = o.ls; } catch (e) {} }
-    if (o.shadow){                                  // offset colour shadow, poster-style
-      c.fillStyle = o.shadow;
-      c.fillText(s, x + size * 0.055, y + size * 0.055);
-    }
-    c.fillStyle = o.color || INKC;
     c.fillText(s, x, y);
-    c.restore();
-  }
-
-  // the chant, wrapped and repeated until it fills the field — line sizes
-  // vary so the block reads as texture rather than a paragraph
-  function drawChant(c, t){
-    c.save();
-    c.textAlign = 'center';
-    c.fillStyle = INKC;
-    c.globalAlpha = 0.9;
-    const drift = (t * 5) % 64;
-    const words = CHANT.repeat(26).trim().split(' ');
-    let i = 0, y = FIELD.y - 40 + drift, li = 0;
-    const sizes = [30, 40, 34, 46, 32, 38];
-    while (y < FIELD.y + FIELD.h + 40 && i < words.length){
-      const fs = sizes[li % sizes.length];
-      c.font = '700 ' + fs + 'px ' + DISPLAY;
-      let line = '';
-      while (i < words.length){
-        const test = line ? line + ' ' + words[i] : words[i];
-        if (c.measureText(test).width > FIELD.w) break;
-        line = test; i++;
-      }
-      if (!line){ line = words[i]; i++; }
-      if (y > FIELD.y - 10) c.fillText(line, PW / 2, y);
-      y += fs * 1.28;
-      li++;
-    }
     c.restore();
   }
 
@@ -1696,7 +1639,7 @@
         const t = document.createElement('canvas');
         t.width = t.height = (n + q * 2) * px;
         const g = t.getContext('2d');
-        g.fillStyle = '#FAF7EC'; g.fillRect(0, 0, t.width, t.height);
+        g.fillStyle = '#F4EEE2'; g.fillRect(0, 0, t.width, t.height);
         g.fillStyle = '#141414';
         for (let r = 0; r < n; r++) for (let cc = 0; cc < n; cc++)
           if (m[r][cc]) g.fillRect((cc + q) * px, (r + q) * px, px, px);
@@ -1704,81 +1647,56 @@
       } catch (e) { qrTile = false; }
     }
     if (!qrTile) return;
-    c.fillStyle = BONEC;
-    c.beginPath(); c.roundRect(x, y, w, w, 8); c.fill();
-    c.strokeStyle = INKC; c.lineWidth = 5;
-    c.beginPath(); c.roundRect(x, y, w, w, 8); c.stroke();
+    c.fillStyle = '#F4EEE2';
+    c.beginPath(); c.roundRect(x, y, w, w + 44, 12); c.fill();
     c.imageSmoothingEnabled = false;
-    c.drawImage(qrTile, x + 12, y + 12, w - 24, w - 24);
+    c.drawImage(qrTile, x + 15, y + 15, w - 30, w - 30);
     c.imageSmoothingEnabled = true;
+    txt(c, 'SCAN · MAKE YOURS', x + w / 2, y + w + 28, 18, { color: '#141414', align: 'center', ls: '.09em' });
   }
 
   const ease = u => 1 - Math.pow(1 - Math.min(1, Math.max(0, u)), 3);
 
   function renderPoster(t){
     const c = posterCtx;
-    const busy = (phase !== 'idle' && phase !== 'settle');
-    c.fillStyle = BONEC; c.fillRect(0, 0, PW, PH);
+    c.fillStyle = '#141414'; c.fillRect(0, 0, PW, PH);
+    txt(c, 'People like us.', 100, 122, 78, { black: true });
+    txt(c, 'COPENHAGEN · ALCOHOL-FREE', PW - 100, 114, 22, { align: 'right', ls: '.22em', alpha: .72 });
+    c.fillStyle = '#F4EEE2'; c.fillRect(100, 152, PW - 200, 4);
 
-    // the chant, then the crowd on top of it
-    drawChant(c, t);
     const size = personSize();
     people.forEach(p => drawFig(c, p, size, t));
 
-    // during a reveal, everything behind the message steps back
-    if (busy){
-      const v = phase === 'part' ? ease(phaseT / 0.9) : 1;
-      c.save(); c.globalAlpha = 0.80 * v;
-      c.fillStyle = BONEC; c.fillRect(0, 0, PW, PH);
-      c.restore();
-    }
-
-    // masthead sits above the veil, always crisp
-    txt(c, 'There Is Always A Spot For', 70, 118, 44, { black: true });
-    const heads = ['PEOPLE', 'LIKE', 'US'];
-    heads.forEach((w, i) => {
-      const y = 236 + i * 108;
-      txt(c, w, 70, y, 104, { black: true, shadow: [P.red, P.sky, P.magenta][i] });
-      const wd = (() => { c.save(); c.font = '700 104px ' + DISPLAY; const m = c.measureText(w).width; c.restore(); return m; })();
-      c.fillStyle = INKC; c.fillRect(70, y + 16, wd, 7);
-    });
-
-    const cx = PW / 2, cy = FIELD.y + FIELD.h * 0.46;
-    const BIG = 470;
+    const cx = PW / 2, cy = FIELD.y + FIELD.h / 2;
     if (hero){
       if (phase === 'part'){
         const u = ease(phaseT / 0.9);
-        hero.x = cx; hero.y = cy - 60;
-        drawFig(c, hero, BIG * u, t, u);
+        hero.x = cx; hero.y = cy - 40;
+        drawFig(c, hero, 430 * u, t, u);
       } else if (phase === 'hero'){
-        hero.x = cx; hero.y = cy - 60;
-        drawFig(c, hero, BIG, t);
+        hero.x = cx; hero.y = cy - 40;
+        drawFig(c, hero, 430, t);
         const a = Math.min(1, phaseT / 0.35);
-        txt(c, 'people like', cx, cy + 250, 62, { align: 'center', alpha: a });
-        txt(c, hero.name + '.', cx, cy + 352, 96, { black: true, align: 'center', alpha: a, shadow: P.magenta });
+        txt(c, 'people like ' + hero.name + '.', cx, cy + 300, 84, { black: true, align: 'center', alpha: a });
       } else if (phase === 'formula'){
         const a = Math.max(0, 1 - phaseT / 0.5);
-        if (a > 0){ hero.x = cx; hero.y = cy - 60; drawFig(c, hero, BIG, t, a); }
+        if (a > 0){ hero.x = cx; hero.y = cy - 40; drawFig(c, hero, 430, t, a); }
         const fa = Math.min(1, phaseT / 0.45);
-        txt(c, 'people like you', cx, cy - 120, 88, { black: true, align: 'center', alpha: fa, shadow: P.sky });
-        txt(c, '+ people like me', cx, cy + 10, 88, { black: true, align: 'center', alpha: fa, shadow: P.pink });
-        txt(c, '= people like us', cx, cy + 140, 88, { black: true, align: 'center', alpha: fa, shadow: P.acid });
+        txt(c, 'People like you + people like me', cx, cy - 20, 82, { black: true, align: 'center', alpha: fa });
+        txt(c, '= people like us', cx, cy + 96, 82, { black: true, align: 'center', alpha: fa });
       } else if (phase === 'settle'){
         const u = ease(phaseT / 1.1);
         hero.x = cx + (hero.tx - cx) * u;
-        hero.y = (cy - 60) + (hero.ty - (cy - 60)) * u;
-        drawFig(c, hero, BIG + (size - BIG) * u, t);
+        hero.y = (cy - 40) + (hero.ty - (cy - 40)) * u;
+        drawFig(c, hero, 430 + (size - 430) * u, t);
       }
     }
 
-    // footer
-    c.fillStyle = BONEC; c.fillRect(0, 1520, PW, PH - 1520);
-    c.fillStyle = INKC; c.fillRect(70, 1524, PW - 140, 6);
-    txt(c, 'SCAN TO JOIN', 70, 1602, 40, { black: true });
-    txt(c, location.host + location.pathname, 70, 1650, 24, { alpha: .75 });
-    txt(c, totalCount + (totalCount === 1 ? ' PERSON' : ' PEOPLE') + ' IN THE POOL', 70, 1700, 24,
-        { ls: '.14em', alpha: busy ? .4 : .8 });
-    drawQRCard(c, PW - 70 - 168, 1560, 168);
+    c.fillStyle = '#F4EEE2'; c.fillRect(100, 880, PW - 200, 4);
+    const quiet = (phase === 'idle' || phase === 'settle') ? 1 : 0.15;
+    txt(c, 'There is always a spot for people like us.', 100, 962, 46, { black: true, alpha: quiet });
+    txt(c, totalCount + (totalCount === 1 ? ' PERSON' : ' PEOPLE') + ' SO FAR', 100, 1012, 22, { ls: '.18em', alpha: .6 * quiet });
+    drawQRCard(c, PW - 100 - 190, 902, 190);
   }
 
   function tick(now){
