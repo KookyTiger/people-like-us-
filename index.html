@@ -145,6 +145,7 @@
     box-shadow:0 3px 10px -2px rgba(0,0,0,.22), 0 30px 64px -22px rgba(0,0,0,.45);
   }
   #posterArt{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #feedCv{position:absolute;left:0;top:45.72%;width:100%;height:54.28%;display:block}
   #kioskCv{position:absolute;left:-6.914%;top:11.618%;width:29.302%;height:34.101%;display:block}
   #qrCv{position:absolute;left:79.632%;top:84.205%;width:16.462%;height:12.347%;display:block}
   .sync-tag{
@@ -585,7 +586,8 @@
 <div id="metro" hidden>
   <div class="poster-sheet">
     <img id="posterArt" alt="People Like Us poster" src="plu-poster.png">
-    <canvas id="kioskCv" width="760" height="1180"></canvas>
+    <canvas id="feedCv" width="1120" height="810"></canvas>
+    <canvas id="kioskCv" width="380" height="590"></canvas>
     <canvas id="qrCv" width="440" height="440"></canvas>
   </div>
 </div>
@@ -1563,12 +1565,13 @@
   // printed queue, and (2) the QR in the bottom-right box. Everything else —
   // title, mission, illustration, queue — lives in the PNG.
   // PW/PH are the KIOSK canvas dims, so the crowd machinery is reused as-is.
-  const PW = 760, PH = 1180;                     // kiosk canvas resolution
-  // the kiosk model is TRANSPARENT (the printed queue shows through the whole
-  // box); only the lower screen is the live, textured real-time part
-  const SCREEN = { x: 14, y: Math.round(PH * 0.45), w: PW - 28, h: PH - Math.round(PH * 0.45) - 34 };
-  const FIELD = { x: SCREEN.x + 18, y: SCREEN.y + 18, w: SCREEN.w - 36, h: SCREEN.h - 36 };
-  const CAP = 12;
+  // The live real-time screen IS the poster's whole bottom half (a wide feed).
+  // The left box in the top half is a separate, static 20%-opaque kiosk that
+  // lets the printed queue show through.
+  const PW = 1120, PH = 810;                     // live feed canvas (bottom half)
+  const SCREEN = { x: 0, y: 0, w: PW, h: PH };
+  const FIELD = { x: 46, y: 46, w: PW - 92, h: PH - 122 };
+  const CAP = 18;
   const people = [], joinQueue = [];
   let posterCtx = null, hero = null, phase = 'idle', phaseT = 0, totalCount = 0, lastT = 0, qrTile = null;
 
@@ -1578,7 +1581,7 @@
   const DISPLAY = "'American Typewriter','Georgia',serif";
 
   function personSize(){
-    return Math.max(96, Math.min(190, 560 / Math.sqrt(people.length + 2)));
+    return Math.max(88, Math.min(168, 660 / Math.sqrt(people.length + 2)));
   }
   function addPerson(d, isNew){
     totalCount++;
@@ -1813,50 +1816,66 @@
     c.restore();
   }
 
-  // Drops into the poster's left box. The kiosk MODEL is transparent (the
-  // printed queue shows through); only the lower SCREEN is the live feed —
-  // dark-but-textured (queue bleeds through + grain + data-mesh), not flat black.
-  function renderKiosk(t){
+  // Static 20%-opaque realistic kiosk for the left box — a ghosted floor unit
+  // so the printed queue lines up visibly behind it. Drawn once.
+  function drawGhostKiosk(){
+    const cv = document.getElementById('kioskCv');
+    if (!cv) return;
+    const c = cv.getContext('2d'), W = cv.width, H = cv.height;
+    c.clearRect(0, 0, W, H);
+    c.save();
+    c.globalAlpha = 0.2;                          // 20% opaque → queue shows through
+    c.translate(W * 0.6, 0);                      // shift right; left ~23% is off-poster
+    const kw = W * 0.6;
+    c.lineWidth = 6; c.lineJoin = 'round';
+    c.strokeStyle = '#141414'; c.fillStyle = '#d7d2c6';
+    rrect(c, -kw / 2, H * 0.05, kw, H * 0.44, 20); c.fill(); c.stroke();   // screen housing
+    c.fillStyle = '#141414'; rrect(c, -kw * 0.4, H * 0.11, kw * 0.8, H * 0.31, 9); c.fill();  // screen
+    c.fillStyle = '#d7d2c6';
+    c.beginPath();                                 // neck
+    c.moveTo(-kw * 0.16, H * 0.49); c.lineTo(kw * 0.16, H * 0.49);
+    c.lineTo(kw * 0.22, H * 0.83); c.lineTo(-kw * 0.22, H * 0.83); c.closePath();
+    c.fill(); c.stroke();
+    rrect(c, -kw * 0.5, H * 0.83, kw, H * 0.12, 12); c.fill(); c.stroke();  // base
+    c.restore();
+  }
+
+  // The live real-time feed = the poster's whole bottom half. Opaque dark, but
+  // textured (grain + data-mesh + scanlines), never flat black.
+  function renderFeed(t){
     const c = posterCtx;
     const size = personSize();
-    c.clearRect(0, 0, PW, PH);                   // transparent → queue shows behind
-
-    // transparent kiosk model: thin see-through outline over the whole box
-    c.save();
-    c.strokeStyle = 'rgba(20,20,20,.5)'; c.lineWidth = 2.5;
-    rrect(c, 6, 4, PW - 12, PH - 8, 20); c.stroke();
-    c.strokeStyle = 'rgba(20,20,20,.3)'; c.lineWidth = 1.5;
-    c.beginPath(); c.moveTo(8, SCREEN.y - 16); c.lineTo(PW - 8, SCREEN.y - 16); c.stroke();  // model seam
-    c.restore();
-
-    // ---- lower screen: the live, textured real-time feed ----
-    c.save();
-    rrect(c, SCREEN.x, SCREEN.y, SCREEN.w, SCREEN.h, 12); c.clip();
-    c.fillStyle = 'rgba(15,15,17,.86)';          // translucent → printed queue bleeds through
-    c.fillRect(SCREEN.x, SCREEN.y, SCREEN.w, SCREEN.h);
-    c.fillStyle = 'rgba(198,255,51,.035)'; c.fillRect(SCREEN.x, SCREEN.y, SCREEN.w, SCREEN.h);
+    c.clearRect(0, 0, PW, PH);
+    c.fillStyle = '#121215'; c.fillRect(0, 0, PW, PH);
+    c.fillStyle = 'rgba(198,255,51,.03)'; c.fillRect(0, 0, PW, PH);
 
     const busy = (phase !== 'idle');
-    c.save(); c.globalAlpha = busy ? 0.32 : 1;
+    c.save(); c.globalAlpha = busy ? 0.22 : 1;
     people.forEach(p => drawFig(c, p, size, t));
     c.restore();
-    if (hero){                                   // new joiner pops in, then settles
-      const cx = SCREEN.x + SCREEN.w / 2, cy = SCREEN.y + SCREEN.h * 0.42, BIG = SCREEN.w * 0.55;
+
+    if (hero){
+      const cx = PW / 2, cy = PH * 0.40, BIG = Math.min(PW, PH) * 0.52;
       if (phase === 'part'){ const u = ease(phaseT / 0.9); hero.x = cx; hero.y = cy; drawFig(c, hero, BIG * u, t, u); }
-      else if (phase === 'hero'){ hero.x = cx; hero.y = cy; drawFig(c, hero, BIG, t); }
+      else if (phase === 'hero'){
+        hero.x = cx; hero.y = cy; drawFig(c, hero, BIG, t);
+        const a = Math.min(1, phaseT / 0.4);
+        c.save(); c.globalAlpha = a; c.textAlign = 'center';
+        c.fillStyle = TH.accent; c.font = '700 26px ' + DISPLAY;
+        c.fillText('PEOPLE LIKE', cx, cy + BIG * 0.62 + 6);
+        c.fillStyle = '#F4EEE2'; c.font = '700 62px ' + DISPLAY;
+        c.fillText(hero.name, cx, cy + BIG * 0.62 + 66);
+        c.restore();
+      }
       else if (phase === 'settle'){ const u = ease(phaseT / 1.1); hero.x = cx + (hero.tx - cx) * u; hero.y = cy + (hero.ty - cy) * u; drawFig(c, hero, BIG + (size - BIG) * u, t); }
     }
+
     dataMesh(c, t);
     maybeGlitch(c, t);
     drawFinish(c);
-    c.restore();
 
-    // screen frame + live label
-    c.strokeStyle = 'rgba(20,20,20,.7)'; c.lineWidth = 2;
-    rrect(c, SCREEN.x, SCREEN.y, SCREEN.w, SCREEN.h, 12); c.stroke();
-    c.fillStyle = TH.accent; c.textAlign = 'center';
-    c.font = '700 15px ' + DISPLAY;
-    c.fillText(totalCount ? 'LIVE · ' + totalCount + ' IN THE POOL' : 'LIVE · SCAN TO JOIN', PW / 2, SCREEN.y + SCREEN.h - 14);
+    c.fillStyle = TH.accent; c.textAlign = 'left'; c.font = '700 20px ' + DISPLAY;
+    c.fillText(totalCount ? 'LIVE · ' + totalCount + ' IN THE POOL' : 'LIVE · SCAN TO JOIN', 34, PH - 26);
   }
 
   function tick(now){
@@ -1874,7 +1893,7 @@
       hero = null; phase = 'idle'; phaseT = 0;
     }
     physics(dt);
-    renderKiosk(t);
+    renderFeed(t);
     requestAnimationFrame(tick);
   }
 
@@ -2083,7 +2102,8 @@
   }
 
   function initScreen(){
-    posterCtx = document.getElementById('kioskCv').getContext('2d');
+    posterCtx = document.getElementById('feedCv').getContext('2d');
+    drawGhostKiosk();
     drawQRTile();
     if (HP.get('debug')) window.__seed = (d, isNew) => addPerson(d, isNew);
     const tag = document.getElementById('syncTag');
