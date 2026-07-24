@@ -335,7 +335,19 @@
   input[type=text]::placeholder{color:var(--ink);opacity:.4}
 
   #reveal canvas{width:100%;border-radius:16px;display:block;margin:0 0 14px}
-  .pool-cell{display:flex;flex-direction:column}
+  .pool-cell{display:flex;flex-direction:column;cursor:pointer;position:relative}
+  .pool-cell canvas{transition:transform .12s ease}
+  .pool-cell:hover canvas,.pool-cell:focus-visible canvas{transform:scale(1.05)}
+  .pool-cell:focus-visible{outline:none}
+  .pool-cell:focus-visible canvas{outline:3px solid var(--ink);outline-offset:2px}
+  .pool-cell .dl{
+    position:absolute;left:0;right:0;top:34%;
+    font-size:10px;font-weight:700;letter-spacing:.1em;
+    text-align:center;color:var(--bone);
+    background:rgba(20,20,20,.72);padding:4px 0;
+    opacity:0;transition:opacity .12s ease;pointer-events:none;
+  }
+  .pool-cell:hover .dl,.pool-cell:focus-visible .dl{opacity:1}
   .pool-name{
     font-size:10px;font-weight:700;
     letter-spacing:.08em;text-transform:uppercase;
@@ -560,6 +572,7 @@
       <h2>The pool</h2>
       <span class="count" id="count">0 people</span>
     </div>
+    <p class="opt-label" style="margin:-6px 0 12px">Tap anyone to download them as a PNG</p>
     <div class="pool-grid" id="grid">
       <p class="empty" id="empty">No one here yet. Make a dot and join.</p>
     </div>
@@ -2132,6 +2145,25 @@
   const emptyEl = document.getElementById('empty');
   const KEY = 'plu-dot-pool';
 
+  // export a single pooled dot as a high-res transparent PNG (full portrait)
+  function exportDot(d){
+    const s = 1200, out = document.createElement('canvas');
+    out.width = out.height = s;
+    const c = out.getContext('2d');                 // no fill → transparent background
+    if (d.g){
+      drawPortrait(c, s, { r: d.r, c: d.c, e: d.e, g: d.g, h: d.h });
+    } else {
+      tracePath(c, d.r, s / 2, s / 2, s * 0.34);
+      c.fillStyle = d.c; c.fill();
+      if (d.e) drawEyes(c, d.r, s / 2, s / 2, s * 0.34, d.e);
+    }
+    const slug = (d.n || 'dot').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'dot';
+    const a = document.createElement('a');
+    a.download = 'plu-' + slug + '.png';
+    a.href = out.toDataURL('image/png');
+    a.click();
+  }
+
   function renderPool(){
     grid.querySelectorAll('.pool-cell').forEach(n => n.remove());
     emptyEl.style.display = pool.length ? 'none' : 'block';
@@ -2156,13 +2188,21 @@
       }
       const cell = document.createElement('div');
       cell.className = 'pool-cell';
+      cell.tabIndex = 0;
+      cell.setAttribute('role', 'button');
+      cell.setAttribute('aria-label', 'Download ' + (d.n || 'this dot') + ' as PNG');
       cell.appendChild(mc);
+      const dl = document.createElement('span');
+      dl.className = 'dl'; dl.textContent = '↓ PNG';
+      cell.appendChild(dl);
       if (d.n){
         const label = document.createElement('p');
         label.className = 'pool-name';
         label.textContent = d.n;
         cell.appendChild(label);
       }
+      cell.addEventListener('click', () => exportDot(d));
+      cell.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); exportDot(d); } });
       grid.appendChild(cell);
     });
   }
