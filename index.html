@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PLU — Make your dot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&family=Archivo+Narrow:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&family=Archivo+Narrow:wght@500;600;700&family=Bungee&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#141414;
@@ -138,8 +138,8 @@
      recessed screen, screws in the corners */
   .poster-frame{
     position:relative;
-    height:min(88vh, calc(84vw * 1.4142));
-    aspect-ratio:1 / 1.4142;
+    height:min(90vh, calc(80vw * 1.548));
+    aspect-ratio:1 / 1.548;
     padding:clamp(14px,2.2vmin,30px);
     border-radius:clamp(8px,1.4vmin,18px);
     background:linear-gradient(152deg,#f6f3ec 0%,#e4e0d6 46%,#c9c4b8 100%);
@@ -606,7 +606,7 @@
 
 <div id="metro" hidden>
   <div class="poster-frame">
-    <canvas id="poster" width="1240" height="1754"></canvas>
+    <canvas id="poster" width="1240" height="1920"></canvas>
   </div>
 </div>
 <span class="sync-tag" id="syncTag" hidden></span>
@@ -1582,9 +1582,13 @@
   // faces — they are the content. Everything else (type, rules, code) is
   // reduced to the quietest thing that still works, in one accent.
   // Options via the hash: #screen?theme=blue&comp=grid
-  const PW = 1240, PH = 1754;
+  const PW = 1240, PH = 1920;
+  const SEAM = 968;                              // Bone graphic panel above, Ink live screen below
   const DISPLAY = "'Franklin Gothic Condensed','Franklin Gothic Medium Cond','Archivo Narrow',Oswald,'Arial Narrow',sans-serif";
-  const FIELD = { x: 116, y: 350, w: PW - 232, h: 1000 };
+  // Gurkner isn't a webfont — renders only if installed locally; Bungee is the funky fallback
+  const FUNKY = "'Gurkner','Bungee','Archivo Black',sans-serif";
+  const FIELD = { x: 116, y: SEAM + 120, w: PW - 232, h: 560 };   // live crowd (bottom panel)
+  const GHOST = { x: 116, y: 150, w: PW - 232, h: 560 };          // faded echo (top panel)
   const CAP = 16;                                  // few, large, legible faces
   const people = [], joinQueue = [];
   let posterCtx = null, hero = null, phase = 'idle', phaseT = 0, totalCount = 0, lastT = 0, qrTile = null;
@@ -1594,7 +1598,7 @@
   const COMP = HP.get('comp') || 'drift';       // drift | grid | column
 
   function personSize(){
-    return Math.max(300, Math.min(560, 1900 / Math.sqrt(people.length + 2)));
+    return Math.max(150, Math.min(280, 940 / Math.sqrt(people.length + 2)));
   }
   function addPerson(d, isNew){
     totalCount++;
@@ -1793,18 +1797,16 @@
       grainTile = makeGrain(); scanTile = makeScan();
       grainPat = c.createPattern(grainTile, 'repeat');
       scanPat = c.createPattern(scanTile, 'repeat');
-      vignette = c.createRadialGradient(PW / 2, PH / 2, PH * 0.28, PW / 2, PH / 2, PH * 0.78);
+      const scy = SEAM + (PH - SEAM) / 2;
+      vignette = c.createRadialGradient(PW / 2, scy, (PH - SEAM) * 0.36, PW / 2, scy, (PH - SEAM) * 0.9);
       vignette.addColorStop(0, 'rgba(0,0,0,0)');
       vignette.addColorStop(1, 'rgba(0,0,0,.42)');
     }
-    c.save();                                   // scanlines
-    c.globalAlpha = .16;
-    c.fillStyle = scanPat;
-    c.fillRect(0, 0, PW, PH);
-    c.restore();
-    c.save();                                   // vignette
-    c.fillStyle = vignette;
-    c.fillRect(0, 0, PW, PH);
+    // scanlines + vignette are CRT effects — bottom (live screen) panel only
+    c.save();
+    c.beginPath(); c.rect(0, SEAM, PW, PH - SEAM); c.clip();
+    c.globalAlpha = .16; c.fillStyle = scanPat; c.fillRect(0, SEAM, PW, PH - SEAM);
+    c.globalAlpha = 1; c.fillStyle = vignette; c.fillRect(0, SEAM, PW, PH - SEAM);
     c.restore();
     c.save();                                   // grain, re-seated each frame
     c.globalCompositeOperation = 'overlay';
@@ -1816,27 +1818,79 @@
     c.restore();
   }
 
+  const M = 116;                                   // one margin governs the sheet
+
+  // giant hollow title: white fill, Ink stroke — the funky centrepiece
+  function drawHollowTitle(c){
+    const lines = ['PEOPLE', 'LIKE', 'US'];
+    const target = PW - M * 1.3;
+    c.save();
+    c.font = '400 100px ' + FUNKY;
+    const fs = Math.min(172, 100 * target / c.measureText('PEOPLE').width);
+    const lh = fs * 0.92;
+    let y = 200 + fs * 0.34;
+    c.textAlign = 'center'; c.lineJoin = 'round'; c.miterLimit = 2;
+    c.font = '400 ' + fs + 'px ' + FUNKY;
+    for (const w of lines){
+      c.fillStyle = '#FFFFFF'; c.fillText(w, PW / 2, y);
+      c.lineWidth = fs * 0.035; c.strokeStyle = INKC; c.strokeText(w, PW / 2, y);
+      y += lh;
+    }
+    c.restore();
+    return y;
+  }
+
+  // — mission copy (draft, PLU voice — edit freely) —
+  const MISSION = [
+    'At some point, everyone got really good at performing normal.',
+    'Then People Like Us opened — a bar where the area never changes, only the shape.',
+    'Where different isn’t less, and normal was never the point.',
+    'Alcohol-free. Neurodivergent-run. No scripts, no last call on being yourself.',
+    'Just music, drinks, games, friends — and a little beautiful nonsense.'
+  ];
+
+  function drawTopLayer(c, t, size){
+    c.save();
+    c.beginPath(); c.rect(0, 0, PW, SEAM); c.clip();
+    c.fillStyle = BONEC; c.fillRect(0, 0, PW, SEAM);
+    // ghost crowd — the live pool, washed pale, drifting behind the title
+    const shift = FIELD.y - GHOST.y;
+    c.save();
+    c.globalAlpha = 0.14;
+    people.forEach(p => {
+      c.save();
+      c.translate(p.x, p.y - shift);
+      c.drawImage(figureOf(p), -size / 2, -size / 2, size, size);
+      c.restore();
+    });
+    c.restore();
+    // corners: location / address (edit these)
+    txt(c, 'COPENHAGEN · DK', M, 84, 24, { color: INKC, ls: '.20em', alpha: .8 });
+    txt(c, 'NØRREBRO — [ ADDRESS ]', PW - M, 84, 24, { color: INKC, align: 'right', ls: '.20em', alpha: .8 });
+    const titleBottom = drawHollowTitle(c);
+    // mission
+    let my = Math.max(titleBottom + 34, 690);
+    txt(c, 'WELCOME TO PEOPLE LIKE US', PW / 2, my, 27, { black: true, align: 'center', color: INKC, ls: '.12em' });
+    my += 44;
+    MISSION.forEach(s => { txt(c, s, PW / 2, my, 22, { align: 'center', color: INKC, alpha: .82 }); my += 31; });
+    c.restore();
+  }
+
   function renderPoster(t){
     const c = posterCtx;
-    const M = 116;                                   // one margin governs the sheet
     const busy = (phase === 'part' || phase === 'hero' || phase === 'formula');
-    c.fillStyle = TH.bg; c.fillRect(0, 0, PW, PH);
-
-    // masthead — small, letterspaced, quiet
-    txt(c, 'PEOPLE LIKE US', M, 150, 26, { black: true, ls: '.26em' });
-    txt(c, 'COPENHAGEN', PW - M, 150, 26, { align: 'right', ls: '.22em', alpha: .45 });
-    c.fillStyle = TH.accent;
-    c.fillRect(M, 186, PW - M * 2, 3);
-
-    // the field — everyone in their own colour, faces legible
     const size = personSize();
+
+    // ---- bottom panel: the live screen ----
+    c.save();
+    c.beginPath(); c.rect(0, SEAM, PW, PH - SEAM); c.clip();
+    c.fillStyle = TH.bg; c.fillRect(0, SEAM, PW, PH - SEAM);
     c.save();
     c.globalAlpha = busy ? 0.18 : 1;
     people.forEach(p => drawFig(c, p, size, t));
     c.restore();
 
-    const cx = PW / 2, cy = FIELD.y + FIELD.h * 0.44;
-    const BIG = 560;
+    const cx = PW / 2, cy = SEAM + (PH - SEAM) * 0.35, BIG = 420;
     if (hero){
       c.save();
       if (phase === 'part'){
@@ -1855,36 +1909,42 @@
       c.restore();
       if (phase === 'hero'){
         const a = Math.min(1, phaseT / 0.4);
-        txt(c, 'PEOPLE LIKE', cx, cy + BIG * 0.52 + 66, 24, { align: 'center', ls: '.34em', alpha: a * .6 });
-        txt(c, hero.name, cx, cy + BIG * 0.52 + 148, 76, { black: true, align: 'center', alpha: a });
+        txt(c, 'PEOPLE LIKE', cx, cy + BIG * 0.55 + 58, 22, { align: 'center', ls: '.34em', alpha: a * .6 });
+        txt(c, hero.name, cx, cy + BIG * 0.55 + 132, 68, { black: true, align: 'center', alpha: a });
       } else if (phase === 'formula'){
         const fa = Math.min(1, phaseT / 0.45);
         const lines = ['people like you', '+ people like me', '= people like us'];
-        // set to the full width of the sheet — the statement is the message
         c.save(); c.font = '700 100px ' + DISPLAY;
         let widest = 0;
         lines.forEach(s => { widest = Math.max(widest, c.measureText(s).width); });
         c.restore();
-        const fs = Math.min(210, 100 * (PW - M * 1.6) / widest), lh = fs * 1.02;
+        const fs = Math.min(150, 100 * (PW - M * 1.6) / widest), lh = fs * 1.04;
         lines.forEach((s, i) => {
-          txt(c, s, cx, PH / 2 - lh * 0.62 + i * lh, fs,
+          txt(c, s, cx, cy - lh * 0.7 + i * lh, fs,
               { black: true, align: 'center', alpha: fa, color: i === 2 ? TH.accent : TH.ink });
         });
       }
     }
 
-    // foot — statement, count, code
+    // footer inside the live panel
     c.fillStyle = TH.accent;
-    c.fillRect(M, 1452, PW - M * 2, 3);
-    txt(c, 'There is always', M, 1548, 56, { black: true, alpha: busy ? .25 : 1 });
-    txt(c, 'a spot for people like us.', M, 1616, 56, { black: true, alpha: busy ? .25 : 1 });
-    txt(c, totalCount + (totalCount === 1 ? ' PERSON' : ' PEOPLE') + ' SO FAR', M, 1676, 22,
+    c.fillRect(M, PH - 300, PW - M * 2, 3);
+    txt(c, 'There is always', M, PH - 214, 52, { black: true, alpha: busy ? .25 : 1 });
+    txt(c, 'a spot for people like us.', M, PH - 152, 52, { black: true, alpha: busy ? .25 : 1 });
+    txt(c, totalCount + (totalCount === 1 ? ' PERSON' : ' PEOPLE') + ' SO FAR', M, PH - 96, 22,
         { ls: '.20em', alpha: busy ? .2 : .55 });
-    drawQR(c, PW - M - 132, 1500, 132);
-    txt(c, 'SCAN TO JOIN', PW - M, 1676, 22, { align: 'right', ls: '.20em', alpha: .45 });
+    drawQR(c, PW - M - 128, PH - 262, 128);
+    txt(c, 'SCAN TO JOIN', PW - M, PH - 96, 22, { align: 'right', ls: '.20em', alpha: .45 });
+    c.restore();
 
-    maybeGlitch(c, t);    // meshes whatever is on the sheet
-    drawFinish(c);        // grain / scanlines / vignette, over everything
+    // ---- top panel: the graphic poster ----
+    drawTopLayer(c, t, size);
+
+    // seam: accent hairline where the two panels meet
+    c.fillStyle = TH.accent; c.fillRect(0, SEAM - 2, PW, 5);
+
+    maybeGlitch(c, t);    // meshes both panels
+    drawFinish(c);        // grain everywhere; scanlines + vignette on the screen only
   }
 
   function tick(now){
@@ -2099,6 +2159,7 @@
 
   function initScreen(){
     posterCtx = document.getElementById('poster').getContext('2d');
+    if (HP.get('debug')) window.__seed = (d, isNew) => addPerson(d, isNew);
     const tag = document.getElementById('syncTag');
     Sync.start((d, isInitial) => addPerson(d, !isInitial)).then(() => {
       tag.hidden = false;
