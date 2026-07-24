@@ -1529,6 +1529,10 @@
   });
   const hydrate = d => ({ ...d, r: Float64Array.from(d.r) });
 
+  // Firestore collection. Kept as 'dots' — the published security rules are
+  // scoped to this exact path, so a fresh collection would need a rules edit.
+  const CLOUD_COLLECTION = 'dots';
+
   const Sync = {
     mode: 'local',
     _cb: () => {},
@@ -1546,7 +1550,7 @@
           this._fs = fs;
           this._db = fs.getFirestore(appMod.initializeApp(FIREBASE_CONFIG));
           this.mode = 'cloud';
-          const q = fs.query(fs.collection(this._db, 'dots'), fs.orderBy('t', 'desc'), fs.limit(300));
+          const q = fs.query(fs.collection(this._db, CLOUD_COLLECTION), fs.orderBy('t', 'desc'), fs.limit(300));
           let firstBatch = true;
           fs.onSnapshot(q, snap => {
             snap.docChanges().forEach(ch => {
@@ -1565,7 +1569,7 @@
     publish(d){
       const payload = slimDot(d);
       if (this.mode === 'cloud'){
-        this._fs.addDoc(this._fs.collection(this._db, 'dots'), { ...payload, t: Date.now() }).catch(() => {});
+        this._fs.addDoc(this._fs.collection(this._db, CLOUD_COLLECTION), { ...payload, t: Date.now() }).catch(() => {});
       } else if (this._bc){
         this._bc.postMessage(payload);
       }
