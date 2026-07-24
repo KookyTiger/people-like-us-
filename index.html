@@ -1564,10 +1564,11 @@
   // title, mission, illustration, queue — lives in the PNG.
   // PW/PH are the KIOSK canvas dims, so the crowd machinery is reused as-is.
   const PW = 760, PH = 1180;                     // kiosk canvas resolution
-  const BEZEL = 30;                              // beige casing thickness
-  const SCREEN = { x: BEZEL, y: BEZEL, w: PW - BEZEL * 2, h: PH - BEZEL * 2 - 40 };
-  const FIELD = { x: SCREEN.x + 20, y: SCREEN.y + 20, w: SCREEN.w - 40, h: SCREEN.h - 40 };
-  const CAP = 14;
+  // the kiosk model is TRANSPARENT (the printed queue shows through the whole
+  // box); only the lower screen is the live, textured real-time part
+  const SCREEN = { x: 14, y: Math.round(PH * 0.45), w: PW - 28, h: PH - Math.round(PH * 0.45) - 34 };
+  const FIELD = { x: SCREEN.x + 18, y: SCREEN.y + 18, w: SCREEN.w - 36, h: SCREEN.h - 36 };
+  const CAP = 12;
   const people = [], joinQueue = [];
   let posterCtx = null, hero = null, phase = 'idle', phaseT = 0, totalCount = 0, lastT = 0, qrTile = null;
 
@@ -1794,41 +1795,68 @@
 
   function rrect(c, x, y, w, h, r){ c.beginPath(); c.roundRect(x, y, w, h, r); }
 
-  // the live kiosk that drops into the poster's left box — opaque beige casing
-  // over the printed queue, a recessed black screen showing the drifting pool
+  // continuous data-mesh: a few slices of the live screen shift sideways every
+  // frame + faint accent ticks — a constant "feed" texture, not a burst
+  function dataMesh(c, t){
+    const cv = c.canvas;
+    for (let i = 0; i < 4; i++){
+      const sy = SCREEN.y + ((t * 34 + i * 151) % (SCREEN.h - 6));
+      const sh = 3 + (i * 5) % 8;
+      const dx = Math.sin(t * 2.3 + i * 1.7) * 5;
+      c.drawImage(cv, SCREEN.x, sy, SCREEN.w, sh, SCREEN.x + dx, sy, SCREEN.w, sh);
+    }
+    c.save();
+    c.globalAlpha = 0.06; c.fillStyle = TH.accent;
+    for (let y = SCREEN.y; y < SCREEN.y + SCREEN.h; y += 3){
+      if ((y * 7 + Math.floor(t * 22)) % 13 < 2) c.fillRect(SCREEN.x, y, SCREEN.w, 1);
+    }
+    c.restore();
+  }
+
+  // Drops into the poster's left box. The kiosk MODEL is transparent (the
+  // printed queue shows through); only the lower SCREEN is the live feed —
+  // dark-but-textured (queue bleeds through + grain + data-mesh), not flat black.
   function renderKiosk(t){
     const c = posterCtx;
     const size = personSize();
-    c.clearRect(0, 0, PW, PH);
+    c.clearRect(0, 0, PW, PH);                   // transparent → queue shows behind
 
-    // beige casing (opaque — hides the queue printed behind it)
-    c.fillStyle = '#E7E2D6'; rrect(c, 0, 0, PW, PH, 24); c.fill();
-    c.fillStyle = 'rgba(255,255,255,.55)'; c.fillRect(7, 5, PW - 14, 3);
-    c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = 3; rrect(c, 1.5, 1.5, PW - 3, PH - 3, 23); c.stroke();
-
-    // recessed black screen + live crowd
+    // transparent kiosk model: thin see-through outline over the whole box
     c.save();
-    rrect(c, SCREEN.x, SCREEN.y, SCREEN.w, SCREEN.h, 13); c.clip();
-    c.fillStyle = '#141414'; c.fillRect(SCREEN.x, SCREEN.y, SCREEN.w, SCREEN.h);
+    c.strokeStyle = 'rgba(20,20,20,.5)'; c.lineWidth = 2.5;
+    rrect(c, 6, 4, PW - 12, PH - 8, 20); c.stroke();
+    c.strokeStyle = 'rgba(20,20,20,.3)'; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(8, SCREEN.y - 16); c.lineTo(PW - 8, SCREEN.y - 16); c.stroke();  // model seam
+    c.restore();
+
+    // ---- lower screen: the live, textured real-time feed ----
+    c.save();
+    rrect(c, SCREEN.x, SCREEN.y, SCREEN.w, SCREEN.h, 12); c.clip();
+    c.fillStyle = 'rgba(15,15,17,.86)';          // translucent → printed queue bleeds through
+    c.fillRect(SCREEN.x, SCREEN.y, SCREEN.w, SCREEN.h);
+    c.fillStyle = 'rgba(198,255,51,.035)'; c.fillRect(SCREEN.x, SCREEN.y, SCREEN.w, SCREEN.h);
+
     const busy = (phase !== 'idle');
-    c.save(); c.globalAlpha = busy ? 0.3 : 1;
+    c.save(); c.globalAlpha = busy ? 0.32 : 1;
     people.forEach(p => drawFig(c, p, size, t));
     c.restore();
-    if (hero){                                  // new joiner pops in, then settles
-      const cx = SCREEN.x + SCREEN.w / 2, cy = SCREEN.y + SCREEN.h * 0.42, BIG = SCREEN.w * 0.62;
+    if (hero){                                   // new joiner pops in, then settles
+      const cx = SCREEN.x + SCREEN.w / 2, cy = SCREEN.y + SCREEN.h * 0.42, BIG = SCREEN.w * 0.55;
       if (phase === 'part'){ const u = ease(phaseT / 0.9); hero.x = cx; hero.y = cy; drawFig(c, hero, BIG * u, t, u); }
-      else if (phase === 'hero' || phase === 'formula'){ hero.x = cx; hero.y = cy; drawFig(c, hero, BIG, t); }
+      else if (phase === 'hero'){ hero.x = cx; hero.y = cy; drawFig(c, hero, BIG, t); }
       else if (phase === 'settle'){ const u = ease(phaseT / 1.1); hero.x = cx + (hero.tx - cx) * u; hero.y = cy + (hero.ty - cy) * u; drawFig(c, hero, BIG + (size - BIG) * u, t); }
     }
+    dataMesh(c, t);
     maybeGlitch(c, t);
     drawFinish(c);
     c.restore();
 
-    // screen bezel shadow + tiny live label on the casing
-    c.strokeStyle = 'rgba(0,0,0,.55)'; c.lineWidth = 2; rrect(c, SCREEN.x, SCREEN.y, SCREEN.w, SCREEN.h, 13); c.stroke();
-    c.fillStyle = '#8f897c'; c.textAlign = 'center';
-    c.font = '700 16px ' + DISPLAY;
-    c.fillText(totalCount ? 'LIVE · ' + totalCount + ' IN THE POOL' : 'LIVE · SCAN TO JOIN', PW / 2, PH - 15);
+    // screen frame + live label
+    c.strokeStyle = 'rgba(20,20,20,.7)'; c.lineWidth = 2;
+    rrect(c, SCREEN.x, SCREEN.y, SCREEN.w, SCREEN.h, 12); c.stroke();
+    c.fillStyle = TH.accent; c.textAlign = 'center';
+    c.font = '700 15px ' + DISPLAY;
+    c.fillText(totalCount ? 'LIVE · ' + totalCount + ' IN THE POOL' : 'LIVE · SCAN TO JOIN', PW / 2, SCREEN.y + SCREEN.h - 14);
   }
 
   function tick(now){
