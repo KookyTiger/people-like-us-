@@ -1039,10 +1039,13 @@
     return null;
   }
 
-  function drawPortrait(c, S, st){
+  // headOnly: skip the garment. The torso is a rigid bell with a hard cut
+  // bottom edge — fine inside a framed portrait, wrong as a free-floating
+  // shape next to the organic heads. The wardrobe data is still recorded.
+  function drawPortrait(c, S, st, headOnly){
     const [gs, gc] = parseGarment(st.g);
     const hh = parseHair(st.h);
-    drawGarment(c, S, gs, gc, st.c);
+    if (!headOnly) drawGarment(c, S, gs, gc, st.c);
     if (hh && HAIR[hh.t][hh.s].back) HAIR[hh.t][hh.s].back(c, S, HAIR_COLORS[hh.k], st.r);
     tracePath(c, st.r, FACE.x * S, FACE.y * S, FACE.r * S);
     c.fillStyle = st.c;
@@ -1554,15 +1557,11 @@
   let posterCtx = null, hero = null, phase = 'idle', phaseT = 0, totalCount = 0, lastT = 0, qrTile = null;
 
   const HP = new URLSearchParams(location.hash.split('?')[1] || '');
-  const THEMES = {
-    green: { bg:'#F4EEE2', accent:'#C6FF33', ink:'#141414', contour:'#141414' },
-    blue:  { bg:'#141414', accent:'#1E3AFF', ink:'#F4EEE2', contour:null }
-  };
-  const TH = THEMES[HP.get('theme')] || THEMES.green;
+  const TH = { bg:'#141414', accent:'#1E3AFF', ink:'#F4EEE2' };
   const COMP = HP.get('comp') || 'drift';       // drift | grid | column
 
   function personSize(){
-    return Math.max(190, Math.min(360, 1180 / Math.sqrt(people.length + 2)));
+    return Math.max(300, Math.min(560, 1900 / Math.sqrt(people.length + 2)));
   }
   function addPerson(d, isNew){
     totalCount++;
@@ -1578,30 +1577,17 @@
     if (isNew) joinQueue.push(p);
     else { people.push(p); if (people.length > CAP) people.shift(); }
   }
-  // Cache each portrait once. On the light sheet it gets a thin Ink contour
-  // so Bone garments still read; on the dark sheet nothing is needed.
+  // Cache each head once, centred in its box so it can float freely.
+  // Face + eyes + hair/hat only — no torso (see drawPortrait's headOnly).
   function figureOf(p){
     if (!p.img){
-      const s = 340, pad = 8, box = s + pad * 2;
-      const body = document.createElement('canvas');
-      body.width = body.height = box;
-      const bc = body.getContext('2d');
-      bc.translate(pad, pad);
-      drawPortrait(bc, s, p.dot);
-      if (!TH.contour){ p.img = body; return p.img; }
-      const ring = document.createElement('canvas');
-      ring.width = ring.height = box;
-      const rc = ring.getContext('2d');
-      for (let a = 0; a < TAU; a += Math.PI / 8) rc.drawImage(body, Math.cos(a) * 3.5, Math.sin(a) * 3.5);
-      rc.globalCompositeOperation = 'source-in';
-      rc.fillStyle = TH.contour;
-      rc.fillRect(0, 0, box, box);
-      const out = document.createElement('canvas');
-      out.width = out.height = box;
-      const oc = out.getContext('2d');
-      oc.drawImage(ring, 0, 0);
-      oc.drawImage(body, 0, 0);
-      p.img = out;
+      const s = 420, box = 420;
+      const m = document.createElement('canvas');
+      m.width = m.height = box;
+      const mc = m.getContext('2d');
+      mc.translate(box / 2 - FACE.x * s, box / 2 - FACE.y * s);  // face centre → box centre
+      drawPortrait(mc, s, p.dot, true);
+      p.img = m;
     }
     return p.img;
   }
@@ -1633,7 +1619,7 @@
 
   function physics(dt){
     if (COMP !== 'drift'){ layout(dt); for (const p of people) p.sq *= Math.exp(-3.4 * dt); return; }
-    const R = personSize() * 0.34;
+    const R = personSize() * 0.29;
     const parting = (phase === 'part' || phase === 'hero' || phase === 'formula');
     const cx = PW / 2, cy = FIELD.y + FIELD.h / 2;
     for (const p of people){
