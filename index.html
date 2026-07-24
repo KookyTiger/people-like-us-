@@ -1529,9 +1529,10 @@
   });
   const hydrate = d => ({ ...d, r: Float64Array.from(d.r) });
 
-  // Firestore collection. Kept as 'dots' — the published security rules are
-  // scoped to this exact path, so a fresh collection would need a rules edit.
-  const CLOUD_COLLECTION = 'dots';
+  // Firestore collection. Fresh, empty collection — the trial pool ('dots')
+  // is left behind, orphaned not deleted. Rules use a wildcard path so any
+  // collection name works; bump this to reset again.
+  const CLOUD_COLLECTION = 'pool-v2';
 
   const Sync = {
     mode: 'local',
