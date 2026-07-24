@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PLU — Make your dot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&family=Zilla+Slab:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&family=Archivo+Narrow:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#141414;
@@ -24,9 +24,9 @@
     --oat:#FFEDC2;
     --licorice:#47413B;
     --paper:#E7E0CF; /* UI helper only (transparent-preview stage), not a brand color */
-    /* American Typewriter is a Mac system face — exact on the studio machine,
-       Zilla Slab keeps the slab voice for everyone else */
-    --font-display:'American Typewriter','Zilla Slab',Rockwell,Georgia,serif;
+    /* Franklin Gothic Condensed ships with MS Office, not with macOS —
+       Archivo Narrow keeps the condensed grotesque voice everywhere else */
+    --font-display:'Franklin Gothic Condensed','Franklin Gothic Medium Cond','Archivo Narrow',Oswald,'Arial Narrow',sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   [hidden]{display:none!important}
@@ -126,19 +126,19 @@
   }
   /* --- poster screen mode (#screen) --- */
   body.screen-mode{
-    background:#8B8B87;
+    background:#FBFBF9;
     padding:0;justify-content:center;
   }
   #metro{
     position:fixed;inset:0;
     display:grid;place-items:center;
-    padding:3vmin;
+    padding:5vmin;              /* white margin all around the machine */
   }
   /* the sheet sits in the same beige machine as the kiosk — retro casing,
      recessed screen, screws in the corners */
   .poster-frame{
     position:relative;
-    height:min(94vh, calc(88vw * 1.4142));
+    height:min(88vh, calc(84vw * 1.4142));
     aspect-ratio:1 / 1.4142;
     padding:clamp(14px,2.2vmin,30px);
     border-radius:clamp(8px,1.4vmin,18px);
@@ -148,7 +148,9 @@
       inset 0 -3px 8px rgba(0,0,0,.10),
       inset 4px 0 8px rgba(255,255,255,.45),
       inset -4px 0 8px rgba(0,0,0,.07),
-      0 40px 80px -26px rgba(0,0,0,.65);
+      0 4px 10px -2px rgba(60,58,52,.22),
+      0 28px 46px -14px rgba(60,58,52,.34),
+      0 60px 90px -34px rgba(60,58,52,.30);
   }
   .poster-frame::before,.poster-frame::after{
     content:'';position:absolute;left:0;right:0;height:0;
@@ -1576,7 +1578,7 @@
   // reduced to the quietest thing that still works, in one accent.
   // Options via the hash: #screen?theme=blue&comp=grid
   const PW = 1240, PH = 1754;
-  const DISPLAY = "'American Typewriter','Zilla Slab',Rockwell,Georgia,serif";
+  const DISPLAY = "'Franklin Gothic Condensed','Franklin Gothic Medium Cond','Archivo Narrow',Oswald,'Arial Narrow',sans-serif";
   const FIELD = { x: 116, y: 350, w: PW - 232, h: 1000 };
   const CAP = 16;                                  // few, large, legible faces
   const people = [], joinQueue = [];
@@ -1725,6 +1727,39 @@
 
   const ease = u => 1 - Math.pow(1 - Math.min(1, Math.max(0, u)), 3);
 
+  // --- glitch: horizontal slice displacement + accent tear ---
+  // Fires on its own schedule, a short burst every few seconds. The slices
+  // are cut from the canvas itself, so whatever is on screen gets meshed.
+  const GRATE = HP.get('glitch') === 'fast' ? 0.35 : 3.5;   // ?glitch=fast to tune
+  let glitchTill = -1, glitchNext = 3;
+  function maybeGlitch(c, t){
+    if (t > glitchNext){
+      glitchTill = t + 0.08 + Math.random() * 0.26;
+      glitchNext = t + GRATE + Math.random() * (GRATE * 2.6);
+    }
+    if (t > glitchTill) return;
+    const cv = c.canvas;
+    const n = 5 + Math.floor(Math.random() * 11);
+    for (let i = 0; i < n; i++){
+      const sy = Math.random() * PH;
+      const sh = 5 + Math.random() * 46;
+      const dx = (Math.random() - 0.5) * 110;
+      c.drawImage(cv, 0, sy, PW, sh, dx, sy, PW, sh);
+      if (Math.random() < 0.30){                 // data tear in the accent
+        c.save();
+        c.globalAlpha = 0.10 + Math.random() * 0.22;
+        c.fillStyle = TH.accent;
+        c.fillRect(dx, sy, PW, Math.max(2, sh * 0.22));
+        c.restore();
+      }
+    }
+    c.save();                                    // ghost echo, one channel off
+    c.globalCompositeOperation = 'lighter';
+    c.globalAlpha = 0.13;
+    c.drawImage(cv, (Math.random() - 0.5) * 18, 0);
+    c.restore();
+  }
+
   // --- analogue finish: film grain, scanlines, vignette ---
   // Baked once, then re-seated each frame so the grain actually moves.
   let grainTile = null, scanTile = null, vignette = null, grainPat = null, scanPat = null;
@@ -1819,8 +1854,16 @@
         txt(c, hero.name, cx, cy + BIG * 0.52 + 148, 76, { black: true, align: 'center', alpha: a });
       } else if (phase === 'formula'){
         const fa = Math.min(1, phaseT / 0.45);
-        ['people like you', '+ people like me', '= people like us'].forEach((s, i) => {
-          txt(c, s, cx, cy - 60 + i * 96, 62, { black: true, align: 'center', alpha: fa });
+        const lines = ['people like you', '+ people like me', '= people like us'];
+        // set to the full width of the sheet — the statement is the message
+        c.save(); c.font = '700 100px ' + DISPLAY;
+        let widest = 0;
+        lines.forEach(s => { widest = Math.max(widest, c.measureText(s).width); });
+        c.restore();
+        const fs = Math.min(210, 100 * (PW - M * 1.6) / widest), lh = fs * 1.02;
+        lines.forEach((s, i) => {
+          txt(c, s, cx, PH / 2 - lh * 0.62 + i * lh, fs,
+              { black: true, align: 'center', alpha: fa, color: i === 2 ? TH.accent : TH.ink });
         });
       }
     }
@@ -1835,6 +1878,7 @@
     drawQR(c, PW - M - 132, 1500, 132);
     txt(c, 'SCAN TO JOIN', PW - M, 1676, 22, { align: 'right', ls: '.20em', alpha: .45 });
 
+    maybeGlitch(c, t);    // meshes whatever is on the sheet
     drawFinish(c);        // grain / scanlines / vignette, over everything
   }
 
