@@ -1559,7 +1559,7 @@
     _bc: null,
     _fs: null,
     _db: null,
-    async start(cb){
+    async start(cb, onReady){
       this._cb = cb;
       if (FIREBASE_CONFIG){
         try {
@@ -1576,6 +1576,7 @@
             snap.docChanges().forEach(ch => {
               if (ch.type === 'added') this._cb(ch.doc.data(), firstBatch);
             });
+            if (firstBatch && onReady) onReady();
             firstBatch = false;
           });
           return;
@@ -1585,6 +1586,7 @@
         this._bc = new BroadcastChannel('plu-dots');
         this._bc.onmessage = e => this._cb(e.data);
       } catch (e) { /* single tab only */ }
+      if (onReady) onReady();
     },
     publish(d){
       const payload = slimDot(d);
@@ -2159,7 +2161,7 @@
     document.getElementById('metro').hidden = !isScreen;
     document.body.classList.toggle('screen-mode', isScreen);
     if (isScreen) initScreen();
-    else Sync.start(() => {});
+    else subscribePool();
   }
   window.addEventListener('hashchange', () => location.reload());
 
@@ -2253,6 +2255,47 @@
     renderPool();
   }
 
+  // --- shared pool ---
+  // The pool grid subscribes to the same Firestore collection as the big
+  // screen, so every device shows the same pool. Dots carry no ids, so they
+  // are deduped by fingerprint (canonical slim form); local-only dots that
+  // never reached the cloud are backfilled once, after the first snapshot,
+  // so devices converge. "Clear the pool" stays a local view-clear — the
+  // Firestore rules are read+create only, so cloud dots return on reload.
+  const seenFps = new Set();
+  const fpDot = d => {
+    const s = slimDot(d);
+    const e = s.e ? [s.e.s, s.e.x, s.e.y, s.e.sz, s.e.g].join(':') : '';
+    return [s.c, s.n || '', s.g || '', s.h || '', s.bg ? 1 : 0, e, s.r.join(',')].join('|');
+  };
+  function subscribePool(){
+    pool.forEach(d => seenFps.add(fpDot(d)));
+    const cloudFps = new Set();
+    const firstBatch = [];
+    let ready = false;
+    Sync.start((d, isInitial) => {
+      const k = fpDot(d);
+      if (isInitial) cloudFps.add(k);
+      if (seenFps.has(k)) return;
+      seenFps.add(k);
+      const dot = hydrate(d);
+      if (isInitial && !ready){ firstBatch.push(dot); return; }
+      pool.push(dot);
+      renderPool();
+      savePool();
+    }, () => {
+      ready = true;
+      if (firstBatch.length){
+        pool.push(...firstBatch.reverse());   // arrives newest-first → append oldest-first
+        renderPool();
+        savePool();
+      }
+      if (Sync.mode === 'cloud'){
+        pool.filter(d => !cloudFps.has(fpDot(d))).forEach(d => Sync.publish(d));
+      }
+    });
+  }
+
   document.getElementById('join').addEventListener('click', () => {
     const me = {
       c: color,
@@ -2263,10 +2306,11 @@
       n: nameInput.value.trim().slice(0, 12),
       r: Float64Array.from(radii)
     };
+    seenFps.add(fpDot(me));    // don't re-add the cloud echo of our own dot
     pool.push(me);
     renderPool();
     savePool();
-    Sync.publish(me);          // → the big screen
+    Sync.publish(me);          // → the big screen + everyone's pool
     pendingMatch = me;
     dressCtrls.hidden = true;
     document.querySelector('.stage').hidden = true;
