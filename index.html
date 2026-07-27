@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PLU — Make your dot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#141414;
@@ -27,6 +27,8 @@
     /* American Typewriter ships with Apple devices only —
        Courier Prime keeps the typewriter voice on Android/Windows */
     --font-brand:'American Typewriter','Courier Prime','Courier New',monospace;
+    /* signage face for kiosk headlines — condensed caps, ticket-machine voice */
+    --font-head:'Bebas Neue','Anton','Arial Narrow',sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   [hidden]{display:none!important}
@@ -169,22 +171,16 @@
     box-shadow:0 26px 34px -16px rgba(45,42,36,.5),inset 0 2px 0 rgba(255,255,255,.7),inset 0 -2px 4px rgba(0,0,0,.08);
   }
 
-  .eyebrow{
-    font-size:11px;
-    letter-spacing:.22em;
-    text-transform:uppercase;
-    font-weight:700;
-    display:flex;
-    justify-content:space-between;
-    border-bottom:2px solid var(--ink);
-    padding-bottom:8px;
-  }
   h1{
-    font-family:var(--font-brand);font-weight:700;
-    font-size:clamp(32px,8.4vw,42px);
-    line-height:1.04;
-    letter-spacing:-.01em;
-    margin:16px 0 4px;
+    font-family:var(--font-head);
+    font-weight:400;
+    font-size:clamp(48px,13vw,66px);
+    line-height:.94;
+    letter-spacing:.04em;
+    text-align:center;
+    margin:2px 0 0;
+    padding-bottom:12px;
+    border-bottom:5px double var(--ink);
   }
   h1 .hl{font-style:normal;color:var(--pink)}
   .sub{font-size:14px;line-height:1.45;max-width:34ch}
@@ -464,9 +460,7 @@
     </div>
     <div class="kiosk-screen"><div class="screen-inner">
 <div class="wrap">
-  <div class="eyebrow"><span>People Like Us</span><span>Dot Maker · Prototype</span></div>
-  <h1>Make <em class="hl">your dot</em>.</h1>
-  <p class="sub">Drag the edge to pinch it. Push it in somewhere, it comes out somewhere else — <b>the area never changes.</b></p>
+  <h1>Make <em class="hl">your dot</em></h1>
 
   <div class="stage">
     <canvas id="dot" aria-label="Your dot. Drag near the edge to reshape it."></canvas>
