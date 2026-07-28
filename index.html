@@ -851,6 +851,15 @@
     c.save();
     torsoPath(c, S); c.clip();
     torsoPath(c, S); c.fillStyle = base; c.fill();
+    // data-driven garments (design-terminal outfit lab): a list of dots and
+    // rects painted inside the torso clip, same coords as everything else
+    if (GARMENTS[style].els){
+      for (const e of GARMENTS[style].els){
+        c.fillStyle = e.c;
+        if (e.t === 'dot'){ c.beginPath(); c.arc(e.x * S, e.y * S, e.r * S, 0, TAU); c.fill(); }
+        else c.fillRect(e.x * S, e.y * S, e.w * S, e.h * S);
+      }
+    }
     if (style === 'tee'){
       c.beginPath(); c.arc(0.5 * S, 0.72 * S, 0.10 * S, 0, TAU);
       c.fillStyle = BONEC; c.fill();
@@ -2374,6 +2383,43 @@
     renderHairColors();
     draw();
   }
+  // custom outfits from the lab become real picker chips. Registered at
+  // every boot (not just #design) so saved pool dots keep their fit.
+  const gsWrap = document.querySelector('[data-gs="tee"]').parentElement;
+  function registerCustom(id, d){
+    GARMENTS[id] = { colors: { custom: { base: d.base } }, els: d.els };
+    let b = document.querySelector(`[data-gs="${id}"]`);
+    if (!b){
+      b = document.createElement('button');
+      b.className = 'chip';
+      b.dataset.gs = id;
+      b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('click', () => {
+        document.querySelectorAll('[data-gs]').forEach(x => x.setAttribute('aria-pressed', 'false'));
+        b.setAttribute('aria-pressed', 'true');
+        garmentStyle = id;
+        garmentColor = 'custom';
+        renderColorBar();
+        draw();
+      });
+      gsWrap.appendChild(b);
+    }
+    b.textContent = d.name;
+  }
+  function unregisterCustom(id){
+    delete GARMENTS[id];
+    const b = document.querySelector(`[data-gs="${id}"]`);
+    if (b) b.remove();
+    if (garmentStyle === id){
+      garmentStyle = 'tee';
+      garmentColor = Object.keys(GARMENTS.tee.colors)[0];
+    }
+  }
+  try {
+    const st0 = JSON.parse(localStorage.getItem(DZ_KEY));
+    if (st0 && st0.customs)
+      for (const [id, d] of Object.entries(st0.customs)) registerCustom(id, d);
+  } catch (e) {}
   function dzSpecText(){
     const L = [], d = DZ_DEF, J = JSON.stringify;
     for (const k of Object.keys(dz.colors)){
@@ -2395,6 +2441,8 @@
       }
       for (const k of Object.keys(def)) if (!(k in cur)) L.push(`- delete ${s} colorway ${k}`);
     }
+    for (const [id, d] of Object.entries(dz.customs || {}))
+      L.push(`+ new outfit "${d.name}" (${id}): ${J(d)}`);
     if (dz.notes.trim()) L.push('', 'NOTES:', dz.notes.trim());
     if (!L.length) return '(no changes yet — 改点什么再来看)';
     return 'PLU DESIGN SPEC · ' + new Date().toISOString().slice(0, 10) + '\n' + L.join('\n');
@@ -2406,8 +2454,9 @@
       colors: { ...DZ_DEF.colors }, labels: { ...DZ_DEF.labels },
       hair: { ...DZ_DEF.hair },
       garments: JSON.parse(JSON.stringify(DZ_DEF.garments)),
-      hidden: [], notes: ''
+      hidden: [], notes: '', customs: {}
     };
+    dz.customs = dz.customs || {};
     dzApply();
 
     const css = document.createElement('style');
@@ -2435,7 +2484,11 @@
     #dzSpec{background:#0c0c0c;border-radius:8px;padding:10px;white-space:pre-wrap;word-break:break-word;font-size:11px;max-height:220px;overflow:auto}
     .dz-btn{background:#F4EEE2;color:#141414;border:none;border-radius:8px;padding:8px 14px;font:700 12px ui-monospace,Menlo,monospace;cursor:pointer;margin:0 8px 8px 0}
     .dz-btn.ghost{background:none;color:#F4EEE2;border:1px solid rgba(244,238,226,.5)}
-    .dz-close{position:absolute;top:10px;right:12px;background:none;border:none;color:#F4EEE2;font-size:20px;cursor:pointer}`;
+    .dz-close{position:absolute;top:10px;right:12px;background:none;border:none;color:#F4EEE2;font-size:20px;cursor:pointer}
+    #dzCanvas{width:100%;border-radius:10px;touch-action:none;display:block;margin:8px 0;cursor:crosshair}
+    .dz-tool{background:none;border:1px solid rgba(244,238,226,.4);color:#F4EEE2;border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;flex:none}
+    .dz-tool.on{background:#F4EEE2;color:#141414}
+    .dz-row input[type=range]{flex:1;accent-color:#F4EEE2;min-width:0}`;
     document.head.appendChild(css);
 
     const el = (tag, cls, txt) => {
@@ -2448,6 +2501,12 @@
     const toggle = el('button', null, '⚙ design'); toggle.id = 'dzToggle';
     toggle.addEventListener('click', () => panel.classList.toggle('open'));
     document.body.append(toggle, panel);
+
+    // outfit-lab editor state — lives outside dzRender so re-renders
+    // (palette edits etc.) never lose a half-painted fit
+    const freshLab = () => ({ name: '', base: SORBET.peri, els: [] });
+    let lab = freshLab(), labEditId = null, labTool = 'dot', labCol = BONEC, labSize = 0.05;
+    const labUndo = [];
 
     let specPre;   // set in dzRender; refreshed after every change
     const changed = () => { dzSave(); dzApply(); specPre.textContent = dzSpecText(); };
@@ -2563,6 +2622,146 @@
         }
         panel.appendChild(det);
       }
+
+      // --- outfit lab: paint a fit with draggable dots and stripes ---
+      panel.appendChild(el('h3', null, 'OUTFIT LAB · 自己画一件'));
+      panel.appendChild(el('p', 'dz-sub', 'dot/stripe 点画布加一个 · 按住可以拖 · erase 点掉 · 画完 SAVE 就会出现在衣服选择器里'));
+      for (const [id, d] of Object.entries(dz.customs)){
+        const row = el('div', 'dz-row');
+        row.appendChild(el('span', 'dz-name', d.name));
+        const ed = el('button', 'dz-add', labEditId === id ? 'editing…' : 'edit 改');
+        ed.addEventListener('click', () => {
+          labEditId = id;
+          lab = JSON.parse(JSON.stringify(d));
+          labUndo.length = 0;
+          dzRender();
+        });
+        const x = el('button', 'dz-x', '×');
+        x.addEventListener('click', () => {
+          delete dz.customs[id];
+          unregisterCustom(id);
+          if (labEditId === id){ labEditId = null; lab = freshLab(); }
+          changed(); dzRender();
+        });
+        row.append(ed, x);
+        panel.appendChild(row);
+      }
+      const tools = el('div', 'dz-row');
+      const toolBtns = {};
+      for (const [t, txt] of [['dot', '● dot'], ['stripe', '▬ stripe'], ['erase', '⌫ erase']]){
+        const b = el('button', 'dz-tool' + (labTool === t ? ' on' : ''), txt);
+        b.addEventListener('click', () => {
+          labTool = t;
+          for (const k in toolBtns) toolBtns[k].classList.toggle('on', k === labTool);
+        });
+        toolBtns[t] = b;
+        tools.appendChild(b);
+      }
+      tools.appendChild(el('span', 'dz-dim', 'color'));
+      tools.appendChild(colorInput(labCol, v => labCol = v));
+      panel.appendChild(tools);
+      const tools2 = el('div', 'dz-row');
+      tools2.appendChild(el('span', 'dz-dim', 'size'));
+      const sizeIn = document.createElement('input');
+      sizeIn.type = 'range'; sizeIn.min = 15; sizeIn.max = 150;
+      sizeIn.value = Math.round(labSize * 1000);
+      sizeIn.addEventListener('input', () => labSize = sizeIn.value / 1000);
+      tools2.appendChild(sizeIn);
+      tools2.appendChild(el('span', 'dz-dim', 'base 底色'));
+      tools2.appendChild(colorInput(lab.base, v => { lab.base = v; labPaint(); }));
+      panel.appendChild(tools2);
+      const ecv = document.createElement('canvas');
+      ecv.id = 'dzCanvas';
+      const EW = 360, Y0 = 0.15, EH = Math.round(EW * (1.0 - Y0)), DPR = 2;
+      ecv.width = EW * DPR; ecv.height = EH * DPR;
+      function labPaint(){
+        const c = ecv.getContext('2d');
+        c.setTransform(DPR, 0, 0, DPR, 0, -Y0 * EW * DPR);
+        c.fillStyle = INKC; c.fillRect(0, Y0 * EW, EW, EH);
+        c.save();
+        torsoPath(c, EW); c.clip();
+        torsoPath(c, EW); c.fillStyle = lab.base; c.fill();
+        for (const e of lab.els){
+          c.fillStyle = e.c;
+          if (e.t === 'dot'){ c.beginPath(); c.arc(e.x * EW, e.y * EW, e.r * EW, 0, TAU); c.fill(); }
+          else c.fillRect(e.x * EW, e.y * EW, e.w * EW, e.h * EW);
+        }
+        c.restore();
+        // face on top — same paint order as the real portrait
+        c.fillStyle = color;
+        c.beginPath(); c.arc(FACE.x * EW, FACE.y * EW, FACE.r * EW, 0, TAU); c.fill();
+      }
+      const evPos = ev => {
+        const r = ecv.getBoundingClientRect();
+        return [(ev.clientX - r.left) / r.width, Y0 + (ev.clientY - r.top) / r.width];
+      };
+      const labHit = (u, v) => {
+        for (let i = lab.els.length - 1; i >= 0; i--){
+          const e = lab.els[i];
+          if (e.t === 'dot'){ if (Math.hypot(u - e.x, v - e.y) <= e.r + 0.015) return e; }
+          else if (u >= e.x - 0.01 && u <= e.x + e.w + 0.01 && v >= e.y - 0.015 && v <= e.y + e.h + 0.015) return e;
+        }
+        return null;
+      };
+      const pushUndo = () => { labUndo.push(JSON.stringify(lab.els)); if (labUndo.length > 40) labUndo.shift(); };
+      let dragEl = null, dragDX = 0, dragDY = 0;
+      ecv.addEventListener('pointerdown', ev => {
+        ev.preventDefault();
+        ecv.setPointerCapture(ev.pointerId);
+        const [u, v] = evPos(ev);
+        const h = labHit(u, v);
+        if (labTool === 'erase'){
+          if (h){ pushUndo(); lab.els.splice(lab.els.indexOf(h), 1); labPaint(); }
+          return;
+        }
+        pushUndo();
+        if (h){ dragEl = h; dragDX = u - h.x; dragDY = v - h.y; return; }
+        dragDX = 0; dragDY = 0;
+        dragEl = labTool === 'dot'
+          ? { t:'dot', x:u, y:v, r:labSize, c:labCol }
+          : { t:'rect', x:0.02, y:v - labSize / 2, w:0.96, h:labSize, c:labCol };
+        lab.els.push(dragEl);
+        labPaint();
+      });
+      ecv.addEventListener('pointermove', ev => {
+        if (!dragEl) return;
+        const [u, v] = evPos(ev);
+        if (dragEl.t === 'dot') dragEl.x = Math.min(1, Math.max(0, u - dragDX));
+        dragEl.y = Math.min(1.02, Math.max(Y0, v - dragDY));
+        labPaint();
+      });
+      ecv.addEventListener('pointerup', () => dragEl = null);
+      ecv.addEventListener('pointercancel', () => dragEl = null);
+      panel.appendChild(ecv);
+      const labActs = el('div', 'dz-row');
+      const ub = el('button', 'dz-add', '↩ undo');
+      ub.addEventListener('click', () => { if (labUndo.length){ lab.els = JSON.parse(labUndo.pop()); labPaint(); } });
+      const cb = el('button', 'dz-add', 'clear 清空');
+      cb.addEventListener('click', () => { pushUndo(); lab.els = []; labPaint(); });
+      labActs.append(ub, cb);
+      panel.appendChild(labActs);
+      const saveRow = el('div', 'dz-row');
+      const labName = document.createElement('input');
+      labName.type = 'text'; labName.placeholder = 'outfit name 名字';
+      labName.value = lab.name || '';
+      const sv = el('button', 'dz-btn', labEditId ? 'UPDATE' : 'SAVE FIT');
+      sv.style.margin = '0';
+      sv.addEventListener('click', () => {
+        lab.name = labName.value.trim() || lab.name || ('fit ' + (Object.keys(dz.customs).length + 1));
+        const id = labEditId || ('fit' + Date.now().toString(36));
+        labEditId = id;
+        dz.customs[id] = JSON.parse(JSON.stringify(lab));
+        registerCustom(id, dz.customs[id]);
+        changed(); dzRender();
+      });
+      const nb = el('button', 'dz-btn ghost', '+ new');
+      nb.style.margin = '0';
+      nb.addEventListener('click', () => {
+        labEditId = null; lab = freshLab(); labUndo.length = 0; dzRender();
+      });
+      saveRow.append(labName, sv, nb);
+      panel.appendChild(saveRow);
+      labPaint();
 
       panel.appendChild(el('h3', null, 'NOTES · 想要的新东西'));
       const notes = document.createElement('textarea');
