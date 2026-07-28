@@ -468,21 +468,9 @@
     <span class="badge">Area = 100% · always</span>
   </div>
 
-  <div class="row swatches" role="group" aria-label="Pick a color">
-    <button class="swatch" data-c="#FF3D8B" style="background:#FF3D8B" aria-label="Shock Pink" aria-pressed="true"></button>
-    <button class="swatch" data-c="#FF4A17" style="background:#FF4A17" aria-label="Ember" aria-pressed="false"></button>
-    <button class="swatch" data-c="#C6FF33" style="background:#C6FF33" aria-label="Acid" aria-pressed="false"></button>
-    <button class="swatch" data-c="#1E3AFF" style="background:#1E3AFF" aria-label="Volt Blue" aria-pressed="false"></button>
-    <button class="swatch" data-c="#9D3CFF" style="background:#9D3CFF" aria-label="Rave" aria-pressed="false"></button>
-    <button class="swatch" data-c="#29F0C8" style="background:#29F0C8" aria-label="Fizz" aria-pressed="false"></button>
-    <button class="swatch" data-c="#3DFF6E" style="background:#3DFF6E" aria-label="Clover" aria-pressed="false"></button>
-    <button class="swatch" data-c="#C4802F" style="background:#C4802F" aria-label="Toffee" aria-pressed="false"></button>
-    <button class="swatch" data-c="#FFC300" style="background:#FFC300" aria-label="Yolk" aria-pressed="false"></button>
-    <button class="swatch" data-c="#19C5FF" style="background:#19C5FF" aria-label="Pool" aria-pressed="false"></button>
-    <button class="swatch" data-c="#E62144" style="background:#E62144" aria-label="Cherry" aria-pressed="false"></button>
-    <button class="swatch" data-c="#FFEDC2" style="background:#FFEDC2" aria-label="Oat" aria-pressed="false"></button>
-    <button class="swatch" data-c="#47413B" style="background:#47413B" aria-label="Licorice" aria-pressed="false"></button>
-  </div>
+  <!-- swatches are generated from COLORS in JS, so the design terminal
+       (#design) can add / remove / retune them live -->
+  <div class="row swatches" role="group" aria-label="Pick a color"></div>
 
   <div class="chips" id="eyeChips">
     <p class="opt-label">Eyes</p>
@@ -1146,14 +1134,34 @@
   }
 
   // --- controls ---
-  document.querySelectorAll('.swatch').forEach(b => {
-    b.addEventListener('click', () => {
-      document.querySelectorAll('.swatch').forEach(s => s.setAttribute('aria-pressed', 'false'));
-      b.setAttribute('aria-pressed', 'true');
-      color = b.dataset.c;
-      draw();
-    });
-  });
+  // face swatches are built from COLORS so the design terminal can edit them
+  const FACE_LABELS = {
+    pink:'Shock Pink', ember:'Ember', acid:'Acid', blue:'Volt Blue',
+    rave:'Rave', fizz:'Fizz', clover:'Clover', toffee:'Toffee',
+    yolk:'Yolk', pool:'Pool', cherry:'Cherry', oat:'Oat', licorice:'Licorice'
+  };
+  const faceLabels = { ...FACE_LABELS };
+  const swWrap = document.querySelector('.swatches');
+  function renderSwatches(){
+    if (!Object.values(COLORS).includes(color)) color = Object.values(COLORS)[0];
+    swWrap.innerHTML = '';
+    for (const [k, hex] of Object.entries(COLORS)){
+      const b = document.createElement('button');
+      b.className = 'swatch';
+      b.dataset.c = hex;
+      b.style.background = hex;
+      b.setAttribute('aria-label', faceLabels[k] || k);
+      b.setAttribute('aria-pressed', String(hex === color));
+      b.addEventListener('click', () => {
+        swWrap.querySelectorAll('.swatch').forEach(s => s.setAttribute('aria-pressed', 'false'));
+        b.setAttribute('aria-pressed', 'true');
+        color = hex;
+        draw();
+      });
+      swWrap.appendChild(b);
+    }
+  }
+  renderSwatches();
 
   const eyeCtrls = document.getElementById('eyeCtrls');
   document.querySelectorAll('[data-eye]').forEach(b => {
@@ -2327,6 +2335,265 @@
     renderPool();
     savePool();
   });
+
+  // ================================================================
+  // --- design terminal: personal tuning panel, opens only on #design.
+  // Edits live in localStorage in THIS browser only — the published app
+  // is untouched until the exported spec is applied to the source file.
+  const DZ_KEY = 'pluDesign';
+  const DZ_DEF = {
+    colors: { ...COLORS }, labels: { ...FACE_LABELS },
+    hair: { ...HAIR_COLORS },
+    garments: Object.fromEntries(Object.entries(GARMENTS).map(([s, g]) =>
+      [s, JSON.parse(JSON.stringify(g.colors))]))
+  };
+  let dz = null;
+  const dzSave = () => localStorage.setItem(DZ_KEY, JSON.stringify(dz));
+  const gsLabel = s => { const b = document.querySelector(`[data-gs="${s}"]`); return b ? b.textContent : s; };
+  const swapInto = (target, src) => {
+    for (const k of Object.keys(target)) delete target[k];
+    Object.assign(target, src);
+  };
+  function dzApply(){
+    swapInto(COLORS, dz.colors);
+    swapInto(faceLabels, dz.labels);
+    swapInto(HAIR_COLORS, dz.hair);
+    for (const s of Object.keys(GARMENTS))
+      if (dz.garments[s]) swapInto(GARMENTS[s].colors, dz.garments[s]);
+    document.querySelectorAll('[data-gs]').forEach(b => {
+      b.style.display = dz.hidden.includes(b.dataset.gs) ? 'none' : '';
+    });
+    // keep current selections valid after deletions
+    if (dz.hidden.includes(garmentStyle))
+      garmentStyle = Object.keys(GARMENTS).find(s => !dz.hidden.includes(s));
+    if (!GARMENTS[garmentStyle].colors[garmentColor])
+      garmentColor = Object.keys(GARMENTS[garmentStyle].colors)[0];
+    if (!HAIR_COLORS[hairColor]) hairColor = Object.keys(HAIR_COLORS)[0];
+    renderSwatches();
+    syncOutfitChips();
+    renderHairColors();
+    draw();
+  }
+  function dzSpecText(){
+    const L = [], d = DZ_DEF, J = JSON.stringify;
+    for (const k of Object.keys(dz.colors)){
+      if (!(k in d.colors)) L.push(`+ add face color "${dz.labels[k] || k}" ${dz.colors[k]}`);
+      else if (dz.colors[k] !== d.colors[k]) L.push(`~ face color ${k}: ${d.colors[k]} → ${dz.colors[k]}`);
+    }
+    for (const k of Object.keys(d.colors)) if (!(k in dz.colors)) L.push(`- delete face color ${k}`);
+    for (const k of Object.keys(dz.hair)){
+      if (!(k in d.hair)) L.push(`+ add hair color "${k}" ${dz.hair[k]}`);
+      else if (dz.hair[k] !== d.hair[k]) L.push(`~ hair color ${k}: ${d.hair[k]} → ${dz.hair[k]}`);
+    }
+    for (const k of Object.keys(d.hair)) if (!(k in dz.hair)) L.push(`- delete hair color ${k}`);
+    for (const s of dz.hidden) L.push(`- delete outfit "${gsLabel(s)}" (${s})`);
+    for (const s of Object.keys(d.garments)){
+      const cur = dz.garments[s], def = d.garments[s];
+      for (const k of Object.keys(cur)){
+        if (!(k in def)) L.push(`+ add ${s} colorway "${k}" ${J(cur[k])}`);
+        else if (J(cur[k]) !== J(def[k])) L.push(`~ ${s}/${k}: ${J(def[k])} → ${J(cur[k])}`);
+      }
+      for (const k of Object.keys(def)) if (!(k in cur)) L.push(`- delete ${s} colorway ${k}`);
+    }
+    if (dz.notes.trim()) L.push('', 'NOTES:', dz.notes.trim());
+    if (!L.length) return '(no changes yet — 改点什么再来看)';
+    return 'PLU DESIGN SPEC · ' + new Date().toISOString().slice(0, 10) + '\n' + L.join('\n');
+  }
+  function dzInit(){
+    if (!/design/.test(location.hash) || document.getElementById('dzPanel')) return;
+    try { dz = JSON.parse(localStorage.getItem(DZ_KEY)); } catch (e) { dz = null; }
+    if (!dz) dz = {
+      colors: { ...DZ_DEF.colors }, labels: { ...DZ_DEF.labels },
+      hair: { ...DZ_DEF.hair },
+      garments: JSON.parse(JSON.stringify(DZ_DEF.garments)),
+      hidden: [], notes: ''
+    };
+    dzApply();
+
+    const css = document.createElement('style');
+    css.textContent = `
+    #dzToggle{position:fixed;right:14px;bottom:14px;z-index:9998;background:#141414;color:#F4EEE2;border:2px solid #F4EEE2;border-radius:999px;padding:10px 16px;font:700 14px/1 ui-monospace,Menlo,monospace;cursor:pointer}
+    #dzPanel{position:fixed;top:0;right:0;height:100%;width:min(430px,100vw);z-index:9999;background:#141414;color:#F4EEE2;font:13px/1.5 ui-monospace,Menlo,monospace;overflow-y:auto;padding:18px 16px 40px;box-shadow:-8px 0 30px rgba(0,0,0,.4);display:none;box-sizing:border-box}
+    #dzPanel.open{display:block}
+    #dzPanel h2{font-size:15px;letter-spacing:.08em;margin:0 24px 2px 0}
+    #dzPanel .dz-sub{opacity:.55;margin:0 0 14px;font-size:11px}
+    #dzPanel h3{font-size:12px;letter-spacing:.12em;margin:18px 0 8px;border-bottom:1px solid rgba(244,238,226,.25);padding-bottom:4px}
+    .dz-row{display:flex;align-items:center;gap:8px;margin:6px 0}
+    .dz-row input[type=color]{width:34px;height:28px;border:none;background:none;padding:0;cursor:pointer;flex:none}
+    .dz-row input[type=text]{flex:1;background:#242018;border:1px solid rgba(244,238,226,.3);color:#F4EEE2;border-radius:6px;padding:5px 8px;font:inherit;min-width:0}
+    .dz-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .dz-dim{opacity:.5;font-size:11px}
+    .dz-x{background:none;border:1px solid rgba(244,238,226,.4);color:#F4EEE2;border-radius:6px;width:26px;height:26px;cursor:pointer;line-height:1;flex:none;font:inherit}
+    .dz-add{background:none;border:1px dashed rgba(244,238,226,.5);color:#F4EEE2;border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;flex:none}
+    .dz-prev{width:36px;height:36px;border-radius:8px;flex:none}
+    #dzPanel details{margin:8px 0;border:1px solid rgba(244,238,226,.18);border-radius:10px;padding:6px 10px}
+    #dzPanel summary{cursor:pointer;display:flex;align-items:center;gap:8px;list-style:none}
+    #dzPanel summary::-webkit-details-marker{display:none}
+    .dz-hide{margin-left:auto;background:none;border:1px solid rgba(244,238,226,.4);color:#F4EEE2;border-radius:6px;padding:3px 8px;cursor:pointer;font:inherit;font-size:11px;flex:none}
+    details.dz-off summary span{opacity:.4;text-decoration:line-through}
+    #dzNotes{width:100%;min-height:70px;background:#242018;border:1px solid rgba(244,238,226,.3);color:#F4EEE2;border-radius:8px;padding:8px;font:inherit;box-sizing:border-box}
+    #dzSpec{background:#0c0c0c;border-radius:8px;padding:10px;white-space:pre-wrap;word-break:break-word;font-size:11px;max-height:220px;overflow:auto}
+    .dz-btn{background:#F4EEE2;color:#141414;border:none;border-radius:8px;padding:8px 14px;font:700 12px ui-monospace,Menlo,monospace;cursor:pointer;margin:0 8px 8px 0}
+    .dz-btn.ghost{background:none;color:#F4EEE2;border:1px solid rgba(244,238,226,.5)}
+    .dz-close{position:absolute;top:10px;right:12px;background:none;border:none;color:#F4EEE2;font-size:20px;cursor:pointer}`;
+    document.head.appendChild(css);
+
+    const el = (tag, cls, txt) => {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (txt != null) e.textContent = txt;
+      return e;
+    };
+    const panel = el('div'); panel.id = 'dzPanel'; panel.classList.add('open');
+    const toggle = el('button', null, '⚙ design'); toggle.id = 'dzToggle';
+    toggle.addEventListener('click', () => panel.classList.toggle('open'));
+    document.body.append(toggle, panel);
+
+    let specPre;   // set in dzRender; refreshed after every change
+    const changed = () => { dzSave(); dzApply(); specPre.textContent = dzSpecText(); };
+
+    const colorInput = (val, fn) => {
+      const i = document.createElement('input'); i.type = 'color'; i.value = val;
+      i.addEventListener('input', () => fn(i.value));
+      return i;
+    };
+    // palette section shared by face + hair colors
+    function paletteSec(wrap, title, sub, obj, labels){
+      wrap.appendChild(el('h3', null, title + '  ·  ' + sub));
+      for (const k of Object.keys(obj)){
+        const row = el('div', 'dz-row');
+        row.appendChild(colorInput(obj[k], v => { obj[k] = v; changed(); }));
+        row.appendChild(el('span', 'dz-name', (labels ? (labels[k] || k) : k)));
+        row.appendChild(el('span', 'dz-dim', obj[k]));
+        const x = el('button', 'dz-x', '×');
+        x.addEventListener('click', () => {
+          if (Object.keys(obj).length <= 1) return;
+          delete obj[k];
+          if (labels) delete labels[k];
+          changed(); dzRender();
+        });
+        row.appendChild(x);
+        wrap.appendChild(row);
+      }
+      const add = el('div', 'dz-row');
+      const name = document.createElement('input'); name.type = 'text'; name.placeholder = 'name 名字';
+      const pick = colorInput('#D9B8FF', () => {});
+      const go = el('button', 'dz-add', '+ add');
+      go.addEventListener('click', () => {
+        let k = (name.value.trim() || 'custom').toLowerCase().replace(/\s+/g, '-');
+        while (obj[k]) k += '2';
+        obj[k] = pick.value;
+        if (labels) labels[k] = name.value.trim() || k;
+        changed(); dzRender();
+      });
+      add.append(pick, name, go);
+      wrap.appendChild(add);
+    }
+
+    function dzRender(){
+      panel.innerHTML = '';
+      const close = el('button', 'dz-close', '×');
+      close.addEventListener('click', () => panel.classList.remove('open'));
+      panel.appendChild(close);
+      panel.appendChild(el('h2', null, 'PLU DESIGN TERMINAL'));
+      panel.appendChild(el('p', 'dz-sub', '只有你看得到 · 改动只存在这台浏览器 · 满意了点 COPY SPEC 发给 Claude 上线'));
+
+      paletteSec(panel, 'FACE COLORS', '脸的颜色', dz.colors, dz.labels);
+      paletteSec(panel, 'HAIR COLORS', '头发颜色', dz.hair, null);
+
+      panel.appendChild(el('h3', null, 'OUTFITS · 衣服'));
+      const visible = Object.keys(dz.garments).filter(s => !dz.hidden.includes(s));
+      for (const s of Object.keys(dz.garments)){
+        const det = document.createElement('details');
+        const off = dz.hidden.includes(s);
+        if (off) det.classList.add('dz-off');
+        const sum = document.createElement('summary');
+        sum.appendChild(el('span', null, gsLabel(s)));
+        const hide = el('button', 'dz-hide', off ? 'restore 恢复' : 'delete 删');
+        hide.addEventListener('click', e => {
+          e.preventDefault();
+          if (!off && visible.length <= 1) return;
+          dz.hidden = off ? dz.hidden.filter(x => x !== s) : [...dz.hidden, s];
+          changed(); dzRender();
+        });
+        sum.appendChild(hide);
+        det.appendChild(sum);
+        const cur = dz.garments[s];
+        const fields = ['base', 'pat', 'pocket'];
+        for (const k of Object.keys(cur)){
+          const row = el('div', 'dz-row');
+          const t = 72, mc = document.createElement('canvas');
+          mc.width = t; mc.height = t; mc.className = 'dz-prev';
+          const paint = () => {
+            const c = mc.getContext('2d');
+            c.fillStyle = INKC; c.fillRect(0, 0, t, t);
+            const Sc = t / 0.42;
+            c.save(); c.translate(-0.29 * Sc, -0.58 * Sc);
+            drawGarment(c, Sc, s, k, color);
+            c.restore();
+          };
+          row.appendChild(mc);
+          row.appendChild(el('span', 'dz-name', k));
+          if (!Object.keys(cur[k]).length) row.appendChild(el('span', 'dz-dim', '= face color'));
+          for (const f of fields) if (cur[k][f] !== undefined)
+            row.appendChild(colorInput(cur[k][f], v => { cur[k][f] = v; changed(); paint(); }));
+          const x = el('button', 'dz-x', '×');
+          x.addEventListener('click', () => {
+            if (Object.keys(cur).length <= 1) return;
+            delete cur[k];
+            changed(); dzRender();
+          });
+          row.appendChild(x);
+          det.appendChild(row);
+          requestAnimationFrame(paint);
+        }
+        if (Object.values(cur)[0] && Object.keys(Object.values(cur)[0]).length){
+          const add = el('button', 'dz-add', '+ colorway 配色');
+          add.addEventListener('click', () => {
+            const proto = Object.values(cur)[0];
+            let k = 'new'; let i = 1;
+            while (cur[k + i]) i++;
+            const nw = {};
+            for (const f of fields) if (proto[f] !== undefined) nw[f] = proto[f];
+            nw.base = '#D9B8FF';
+            cur[k + i] = nw;
+            changed(); dzRender();
+          });
+          det.appendChild(add);
+        }
+        panel.appendChild(det);
+      }
+
+      panel.appendChild(el('h3', null, 'NOTES · 想要的新东西'));
+      const notes = document.createElement('textarea');
+      notes.id = 'dzNotes';
+      notes.placeholder = '描述你想要的新 outfit / 发型 / 其他改动，会一起放进 spec';
+      notes.value = dz.notes;
+      notes.addEventListener('input', () => { dz.notes = notes.value; dzSave(); specPre.textContent = dzSpecText(); });
+      panel.appendChild(notes);
+
+      panel.appendChild(el('h3', null, 'SPEC · 发给 Claude 的改动清单'));
+      specPre = el('pre'); specPre.id = 'dzSpec';
+      specPre.textContent = dzSpecText();
+      panel.appendChild(specPre);
+      const copy = el('button', 'dz-btn', 'COPY SPEC');
+      copy.addEventListener('click', () =>
+        navigator.clipboard.writeText(dzSpecText()).then(() => {
+          copy.textContent = '✓ COPIED';
+          setTimeout(() => copy.textContent = 'COPY SPEC', 1200);
+        }));
+      const reset = el('button', 'dz-btn ghost', 'RESET ALL');
+      reset.addEventListener('click', () => {
+        if (!confirm('清空所有实验，回到正式版？')) return;
+        localStorage.removeItem(DZ_KEY);
+        location.reload();
+      });
+      panel.append(copy, reset);
+    }
+    dzRender();
+  }
+  window.addEventListener('hashchange', dzInit);
+  dzInit();
 
   window.addEventListener('resize', resize);
   resize();
