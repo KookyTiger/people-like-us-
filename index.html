@@ -224,6 +224,8 @@
     opacity:.55;
     pointer-events:none;
   }
+  /* #clean — text-free stage for screen recordings */
+  body.clean-mode .hint,body.clean-mode .badge{display:none}
 
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .swatches{margin-bottom:14px}
@@ -2178,6 +2180,8 @@
     document.querySelector('.kiosk').hidden = isScreen;
     document.getElementById('metro').hidden = !isScreen;
     document.body.classList.toggle('screen-mode', isScreen);
+    // #clean: hide the stage's overlay texts (for screen recordings)
+    document.body.classList.toggle('clean-mode', location.hash.includes('clean'));
     if (isScreen) initScreen();
     else subscribePool();
   }
