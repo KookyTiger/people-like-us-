@@ -132,30 +132,31 @@
     clip-path:polygon(14% 0,86% 0,97% 100%,3% 100%);
     box-shadow:inset 0 0 24px rgba(0,0,0,.06),inset 2px 0 5px rgba(255,255,255,.5),inset -2px 0 5px rgba(0,0,0,.05);
   }
-  /* --- poster screen mode (#screen) --- */
-  /* the printed poster (a baked PNG) is the artwork; two live canvases sit
-     over the placeholder boxes — the kiosk (opaque, over the queue) + the QR */
+  /* --- live screen mode (#screen) --- */
+  /* full-bleed black screen: the live feed IS the whole display. The old
+     printed-poster art + ghost kiosk stay in the DOM but hidden; the QR
+     pins to the bottom-right of the feed. Same machinery, no paper. */
   body.screen-mode{
-    background:#EDEBE4;
+    background:#121215;
     padding:0;justify-content:center;
   }
   #metro{
     position:fixed;inset:0;
     display:grid;place-items:center;
-    padding:3.5vmin;
+    padding:0;
+    background:#121215;
   }
   .poster-sheet{
     position:relative;
-    height:min(94vh, calc(94vw * 1.3333));
-    aspect-ratio:1296 / 1728;
-    background:#fff;
+    height:min(100vh, calc(100vw * 810 / 1120));
+    aspect-ratio:1120 / 810;
+    background:#121215;
     overflow:hidden;
-    box-shadow:0 3px 10px -2px rgba(0,0,0,.22), 0 30px 64px -22px rgba(0,0,0,.45);
   }
-  #posterArt{position:absolute;inset:0;width:100%;height:100%;display:block}
-  #feedCv{position:absolute;left:0;top:45.72%;width:100%;height:54.28%;display:block}
-  #kioskCv{position:absolute;left:-6.914%;top:11.618%;width:29.302%;height:34.101%;display:block}
-  #qrCv{position:absolute;left:79.632%;top:84.205%;width:16.462%;height:12.347%;display:block}
+  #posterArt{display:none}
+  #kioskCv{display:none}
+  #feedCv{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #qrCv{position:absolute;left:auto;top:auto;right:2.6%;bottom:4.2%;width:14%;height:auto;aspect-ratio:1/1;display:block}
   .sync-tag{
     position:fixed;right:10px;bottom:8px;
     font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
