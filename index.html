@@ -226,6 +226,12 @@
   }
   /* #clean — text-free stage for screen recordings */
   body.clean-mode .hint,body.clean-mode .badge{display:none}
+  /* the one line of mission copy, delivered at the emotional peak (joining) */
+  #ndLine{
+    text-align:center;font-size:13px;line-height:1.5;margin:0 0 14px;color:var(--ink);
+    opacity:0;animation:ndfade .9s ease .55s forwards
+  }
+  @keyframes ndfade{to{opacity:.75}}
 
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .swatches{margin-bottom:14px}
@@ -569,6 +575,7 @@
 
   <section id="reveal" hidden>
     <p class="opt-label" style="text-align:center;margin-bottom:10px">✳ You're on the big screen now</p>
+    <p id="ndLine">Your dot is 100% — same as everyone's. Just shaped differently.</p>
     <button class="action primary" id="findBtn" style="width:100%">Find people like me →</button>
     <p class="sub" id="revealMsg" hidden style="margin:14px 0 0">Finding people like you…</p>
     <div id="matchWrap" hidden>
@@ -790,7 +797,7 @@
     return r[i] * (1 - t) + r[(i + 1) % N] * t;
   }
 
-  function drawEyes(c, r, x0, y0, scale, e){
+  function drawEyes(c, r, x0, y0, scale, e, anim){
     if (!e || !e.s || e.s === 'none') return;
     const INK = '#141414', BONE = '#F4EEE2';
     const ex = e.x || 0, ey = e.y || 0;
@@ -802,6 +809,11 @@
     const ax = x0 + ex * 0.55 * rr * scale;
     const ay = y0 + ey * 0.45 * u;
     const s = 0.085 * u * sz;
+    // idle-life animation (live canvas only): blink squashes vertically
+    // around the eye line, glance nudges the pupils sideways
+    const lx = anim ? anim.look * 0.55 * s : 0;
+    const bl = anim ? anim.blink : 0;
+    if (bl > 0){ c.save(); c.translate(0, ay); c.scale(1, 1 - 0.85 * bl); c.translate(0, -ay); }
     const dot = (x, y, rad, col) => {
       c.beginPath(); c.arc(x, y, rad, 0, TAU);
       c.fillStyle = col; c.fill();
@@ -809,12 +821,13 @@
     if (e.s === 'googly'){
       dot(ax - 0.16 * u * g, ay, s * 1.7, BONE);
       dot(ax + 0.16 * u * g, ay, s * 1.7, BONE);
-      dot(ax - 0.16 * u * g, ay + 0.4 * s, s * 0.8, INK);
-      dot(ax + 0.16 * u * g, ay + 0.4 * s, s * 0.8, INK);
+      dot(ax - 0.16 * u * g + lx, ay + 0.4 * s, s * 0.8, INK);
+      dot(ax + 0.16 * u * g + lx, ay + 0.4 * s, s * 0.8, INK);
     } else if (e.s === 'cyclops'){
       dot(ax, ay, s * 2.3, BONE);
-      dot(ax, ay + 0.5 * s, s * 1.05, INK);
+      dot(ax + lx, ay + 0.5 * s, s * 1.05, INK);
     }
+    if (bl > 0) c.restore();
   }
 
   // fixed torso silhouette — never moves, never deforms (clothes are
@@ -1114,7 +1127,7 @@
       tracePath(ctx, radii, cx, cy, R);
       ctx.fillStyle = color;
       ctx.fill();
-      drawEyes(ctx, radii, cx, cy, R, curEye());
+      drawEyes(ctx, radii, cx, cy, R, curEye(), eyeAnim);
     } else {
       drawPortrait(ctx, cw, { r: radii, c: color, e: curEye(), g: gid(), h: hid() });
     }
@@ -1390,14 +1403,21 @@
   });
 
   function exportPNG(drawFn, name){
-    const s = 800, out = document.createElement('canvas');
-    out.width = s; out.height = s;
+    const s = 800, cap = 58, out = document.createElement('canvas');
+    out.width = s; out.height = s + cap;   // extra strip: the mission rides along on every share
     const c = out.getContext('2d');
     if (hasBg){
       c.fillStyle = '#141414';
-      c.fillRect(0, 0, s, s);
+      c.fillRect(0, 0, s, s + cap);
     }
     drawFn(c, s);
+    c.textAlign = 'center';
+    c.font = "700 21px 'American Typewriter','Courier Prime',Georgia,serif";
+    c.fillStyle = hasBg ? '#C6FF33' : '#47413B';
+    c.fillText("there's always a spot for people like us ✳", s / 2, s + 24);
+    c.font = "700 14px 'American Typewriter','Courier Prime',Georgia,serif";
+    c.fillStyle = hasBg ? 'rgba(244,238,226,.6)' : 'rgba(71,65,59,.65)';
+    c.fillText('peoplelikeus.dk', s / 2, s + 45);
     const a = document.createElement('a');
     a.download = name;
     a.href = out.toDataURL('image/png');
@@ -1899,6 +1919,231 @@
     c.restore();
   }
 
+  // --- awareness ticker: things people don't know about neurodivergence.
+  // One line at a time, only while the feed idles (a join always wins the
+  // stage), shuffled once per boot; every 7th slot is the house slogan.
+  const ND_FACTS = [
+    "About 1 in 6 people is neurodivergent — look around the bar.",
+    "Dyslexia affects roughly 1 in 10 people.",
+    "ADHD affects about 5% of children worldwide.",
+    "An estimated 366 million adults live with ADHD.",
+    "About 1 in 36 children in the US is autistic.",
+    "Autism exists in every country, culture and language on Earth.",
+    "Dyspraxia affects about 1 in 20 people — most have never heard its name.",
+    "Dyscalculia is about as common as dyslexia, but far less known.",
+    "Tourette syndrome affects about 1 in 100 school-age kids.",
+    "Only about 1 in 10 people with Tourette's swear involuntarily.",
+    "About 70 million people worldwide stutter.",
+    "Up to 1 in 50 people will experience OCD in their lifetime.",
+    "2 of 3 neurodivergent adults in Denmark are outside the labour market.",
+    "Only about 3 in 10 autistic adults in the UK have a job.",
+    "Most adults with ADHD were never diagnosed as children.",
+    "Many women discover they're autistic only after their child is diagnosed.",
+    "Boys are four times more likely to get an autism diagnosis. Girls mask more.",
+    "Girls with ADHD get missed: daydreaming looks quieter than bouncing.",
+    "ADHD is about as heritable as height.",
+    "Autism runs in families — it's one of the most heritable traits we know.",
+    "Autism and ADHD often come together. The internet calls it AuDHD.",
+    "Around half of autistic people also live with anxiety.",
+    "Synesthesia — seeing sounds, tasting words — is far more common in autistic people.",
+    "Perfect pitch shows up far more often in autistic musicians.",
+    "Up to 1 in 3 American entrepreneurs shows dyslexic thinking.",
+    "The word 'neurodiversity' was coined in 1998 by sociologist Judy Singer.",
+    "'Neurotypical' was invented by the autistic community — not by doctors.",
+    "'Autism' comes from the Greek autos — self.",
+    "Autism was first described as a diagnosis in 1943.",
+    "The first medical description of ADHD-like traits dates to 1798.",
+    "ADHD was once called 'hyperkinetic reaction of childhood.'",
+    "Dyslexia was described in 1881 — and first called 'word blindness.'",
+    "Donald Triplett, the first person diagnosed autistic, lived to 89 — bank teller, golfer, traveler.",
+    "The rainbow infinity symbol stands for neurodiversity.",
+    "The gold infinity symbol stands for autism acceptance.",
+    "Many autistic adults prefer 'autistic person' over 'person with autism.'",
+    "April is Autism Acceptance Month.",
+    "October is ADHD Awareness Month.",
+    "The puzzle-piece autism symbol is being retired. No one here is missing a piece.",
+    "'Stimming' = rocking, tapping, flapping. It regulates the nervous system.",
+    "'Masking' means hiding neurodivergent traits to pass as typical. It's exhausting.",
+    "The word 'neurodivergent' was coined by autistic activist Kassiane Asasumasu.",
+    "The opposite of neurodivergent isn't 'normal' — it's neurotypical.",
+    "Neurodiversity is natural human variation — like handedness, like fingerprints.",
+    "Left-handed people were once forced to switch. Sound familiar?",
+    "ADHD brains handle dopamine differently. Motivation works differently — not less.",
+    "Some ADHD brain regions mature about three years later — and catch up.",
+    "ADHD medication is among the most effective treatments in all of psychiatry.",
+    "ADHD medication measurably reduces car accidents.",
+    "Exercise gives ADHD brains a short, real focus boost.",
+    "ADHD isn't caused by sugar.",
+    "ADHD isn't caused by screens.",
+    "ADHD isn't caused by parenting.",
+    "Vaccines do not cause autism. Full stop.",
+    "The 'refrigerator mother' theory blamed mothers for autism. It was completely wrong.",
+    "You don't grow out of ADHD — it usually grows with you.",
+    "Autism has no 'look.' You can't see it in a face.",
+    "'If you've met one autistic person, you've met one autistic person.'",
+    "The spectrum isn't a line from mild to severe. It's a mixing desk of traits.",
+    "Eye contact can be physically stressful for autistic people. Looking away helps listening.",
+    "Autistic people often outperform others on pattern-recognition tests.",
+    "Autistic people are harder to fool with framing tricks in decision tests.",
+    "Autistic long-term memory for detail can be extraordinary.",
+    "Raising autistic kids bilingual doesn't confuse them. That's a myth.",
+    "Nonspeaking does not mean non-understanding.",
+    "Some nonspeaking autistic people write books, poetry and code.",
+    "Echolalia — repeating phrases — is processing and connection, not mockery.",
+    "Hyperfocus is ADHD's flip side: hours of unbreakable deep work.",
+    "'Time blindness' is a real ADHD perception difference — not laziness.",
+    "With ADHD, small criticism can land enormous. It's called rejection sensitivity.",
+    "Dyslexia has nothing to do with intelligence.",
+    "Dyslexic readers often excel at 3D and spatial reasoning.",
+    "Dyslexic thinking is strong at big-picture connections.",
+    "Dyslexia isn't seeing letters backwards — it's decoding sounds to symbols.",
+    "People who stutter usually don't stutter when they sing.",
+    "Fluorescent lights visibly flicker for some autistic people.",
+    "Some neurodivergent people can hear electricity humming in the walls.",
+    "A clothing tag can feel like sandpaper to a sensitive nervous system.",
+    "Sensory overload is physical — every volume knob turned to max at once.",
+    "Meltdowns aren't tantrums. They're neurological overload.",
+    "Shutdowns are the quiet cousin of meltdowns — the brain going offline to cope.",
+    "Autistic burnout is real, and it's different from depression.",
+    "Suppressing stims costs real energy. Letting them happen is free.",
+    "Hand-flapping often means joy too big for words.",
+    "Weighted blankets work like a hug you control.",
+    "Many autistic people feel emotions more intensely — not less.",
+    "Alexithymia — trouble naming your own feelings — affects about 1 in 10 people.",
+    "Interoception differences: some people don't feel hunger until it's urgent.",
+    "Some neurodivergent people feel pain more, some less, some just differently.",
+    "Noise-cancelling headphones are an access tool, not rudeness.",
+    "Sunglasses indoors can be sensory protection, not attitude.",
+    "Small talk can cost more energy than the hard questions.",
+    "Masking all day is why many neurodivergent people collapse at home.",
+    "Routines aren't rigidity. Predictability frees up processing power.",
+    "Special interests boost wellbeing, learning speed — and careers.",
+    "A special interest can last decades and become a profession.",
+    "Info-dumping — sharing everything about a topic — is a love language.",
+    "Parallel play: being together without talking is real connection.",
+    "Body-doubling — working next to someone — genuinely helps ADHD focus.",
+    "Fidgeting isn't distraction. For some brains, movement is how thinking happens.",
+    "Greta Thunberg calls her autism her superpower.",
+    "Simone Biles competes — and wins — with ADHD.",
+    "Michael Phelps was diagnosed with ADHD at 9. Most decorated Olympian ever.",
+    "Billie Eilish has Tourette syndrome.",
+    "Lewis Capaldi's fans sing for him when his tics take over.",
+    "Anthony Hopkins was diagnosed autistic in his late seventies.",
+    "Dan Aykroyd is autistic. Ghostbusters grew from his fascination with the paranormal.",
+    "Richard Branson credits dyslexic thinking for Virgin's biggest ideas.",
+    "Whoopi Goldberg — EGOT winner — is dyslexic.",
+    "Steven Spielberg found out he was dyslexic at 60.",
+    "Keira Knightley is dyslexic. Film scripts got her reading.",
+    "Jamie Oliver is dyslexic — he finished his first novel at 38.",
+    "Cher is dyslexic and dyscalculic.",
+    "Orlando Bloom is dyslexic.",
+    "will.i.am calls his ADHD a gift for making music.",
+    "David Beckham speaks openly about living with OCD.",
+    "Daniel Radcliffe has dyspraxia. Magic requires no neat handwriting.",
+    "Florence Welch is dyslexic and dyspraxic.",
+    "F1 champion Sir Jackie Stewart was diagnosed dyslexic in his forties.",
+    "Pokémon began as Satoshi Tajiri's childhood special interest: collecting insects.",
+    "Temple Grandin — autistic professor — redesigned cattle handling across an industry.",
+    "Temple Grandin: 'The world needs all kinds of minds.'",
+    "Naturalist Chris Packham makes BBC documentaries about being autistic.",
+    "Hannah Gadsby's comedy special Douglas is all about their autism diagnosis.",
+    "Actor Wentworth Miller shared his autism diagnosis at 49.",
+    "Susan Boyle found out she's autistic at 51 — 'a relief,' she said.",
+    "Comedian Fern Brady wrote a bestseller about being an autistic woman.",
+    "Heartbreak High's Chloé Hayden is autistic — so is her character.",
+    "Tom Cruise is dyslexic and learns scripts by listening.",
+    "Salma Hayek is dyslexic.",
+    "Sci-fi legend Octavia Butler was dyslexic — and wrote anyway, brilliantly.",
+    "Muhammad Ali was dyslexic. His words did just fine.",
+    "Justin Timberlake has spoken about living with ADHD and OCD.",
+    "Howie Mandel turned his OCD into advocacy.",
+    "Rapper Loyle Carner — dyslexic, ADHD — runs a cooking school for kids with ADHD.",
+    "70% of the crew behind this bar is neurodivergent.",
+    "People Like Us hires for what you're good at — then builds the job around it.",
+    "Denmark's Specialisterne pioneered autistic hiring. Founded by a dad in 2004.",
+    "Specialisterne's goal: one million neurodivergent jobs worldwide.",
+    "In one JPMorgan pilot, autistic employees were up to 140% more productive.",
+    "SAP's Autism at Work program keeps over 90% of its hires.",
+    "Microsoft, SAP, EY and JPMorgan all run neurodiversity hiring programs.",
+    "GCHQ — British intelligence — actively recruits dyslexic analysts.",
+    "Companies hire autistic QA testers for the details everyone else misses.",
+    "Job interviews mostly test small talk. Work trials test work.",
+    "Some firms now send interview questions in advance. Clarity costs nothing.",
+    "Flexible hours help neurodivergent employees most — and everyone else too.",
+    "Remote work quietly removed the office sensory tax for many people.",
+    "Open-plan offices are hardest on sensitive sensory systems.",
+    "Clear, literal instructions help everyone. That's universal design.",
+    "The best accommodations are usually cheap: quiet, clarity, flexibility.",
+    "Different brains spot different errors. That's why diverse teams win.",
+    "A special interest is a 10,000-hour head start.",
+    "Autistic unemployment is among the highest of any disability group.",
+    "Most unemployed autistic adults want to work. The barrier isn't will.",
+    "A CV gap is not a skill gap.",
+    "'Culture fit' filters out different minds. 'Culture add' welcomes them.",
+    "Denmark has a phrase for it: det rummelige arbejdsmarked — the spacious labour market.",
+    "Danish flexjobs let people work fewer hours with full dignity.",
+    "Hiring neurodivergent talent isn't charity. It's competitive advantage.",
+    "Many supermarkets now run quiet hours: dim lights, no music.",
+    "The sunflower lanyard quietly signals invisible disabilities in 100+ airports.",
+    "Major airports now build sensory rooms for overloaded travelers.",
+    "Cinemas run relaxed screenings: lights up, sound down, moving around welcome.",
+    "Theme parks publish sensory guides rating every ride's noise and light.",
+    "Captions were built for deaf viewers. ADHD viewers use them to focus.",
+    "The curb-cut effect: design for disability ends up helping everyone.",
+    "Audiobooks turned reading barriers into non-issues.",
+    "Spellcheck was quietly life-changing for dyslexic writers.",
+    "Fonts like OpenDyslexic are drawn specifically for dyslexic readers.",
+    "There's an FDA-cleared video game prescribed for ADHD.",
+    "LEGO instructions have no words. Accidental universal design.",
+    "The pause button is an accessibility feature.",
+    "Neurodivergence isn't new. Diagnosis is.",
+    "There is no autism epidemic. We just finally started counting everyone.",
+    "Autistic kids become autistic adults. Support shouldn't end at 18.",
+    "Autistic people feel empathy — many feel it overwhelmingly.",
+    "The 'double empathy problem': misunderstanding runs both ways.",
+    "Autistic people communicate smoothly with each other. Studies confirm it.",
+    "ADHD isn't a deficit of attention — it's difficulty steering it.",
+    "Tics are involuntary. Asking someone to stop makes them worse.",
+    "OCD isn't liking things tidy. It's unwanted thoughts on a loop.",
+    "'We're all a little ADHD'? Everyone forgets keys. ADHD is every day, everywhere.",
+    "Intelligence and neurodivergence are independent. Every combination exists.",
+    "The social model: change the environment, and the disability shrinks.",
+    "Late diagnosis is still worth it. Thousands say: 'my life finally made sense.'",
+    "Autism assessment waiting lists run years in many countries.",
+    "Accommodations aren't unfair advantages. Neither are glasses.",
+    "Asking 'how can I help?' beats guessing.",
+    "You probably love someone neurodivergent. You might not know it yet.",
+    "Many ADHD brains run on a later clock. Night owls by neurology, not choice.",
+    "Melatonin can work differently in autistic people — sleep struggles are biological.",
+    "Neurodivergence and hypermobile joints travel together surprisingly often.",
+    "ADHD is overrepresented among startup founders.",
+    "Monotropism: many autistic minds focus like a lighthouse beam — one thing, brilliantly.",
+    "Autistic perception takes in more information per second. The overload IS the bandwidth.",
+    "AAC apps and devices give nonspeaking people a full voice.",
+    "Every dot on this screen is exactly 100% — same area, different shape.",
+    "No two dots here are alike. Neither are two brains.",
+    "Alcohol-free, sensory-friendly, judgment-free. That's the point of this place."
+  ];
+  const FACT_SHOW = 11, FACT_GAP = 24;   // seconds on / off — the dots stay the star
+  let factT = 0, factN = 0;
+  const factOrder = ND_FACTS.map((_, i) => i);
+  for (let i = factOrder.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [factOrder[i], factOrder[j]] = [factOrder[j], factOrder[i]];
+  }
+  function tickerText(c, s, x, y, maxW, lh){
+    const words = s.split(' '), lines = [];
+    let line = '';
+    for (const w of words){
+      const t = line ? line + ' ' + w : w;
+      if (c.measureText(t).width > maxW && line){ lines.push(line); line = w; }
+      else line = t;
+    }
+    lines.push(line);
+    const y0 = y - (lines.length - 1) * lh;
+    lines.forEach((l, i) => c.fillText(l, x, y0 + i * lh));
+  }
+
   // The live real-time feed = the poster's whole bottom half. Opaque dark, but
   // textured (grain + data-mesh + scanlines), never flat black.
   function renderFeed(t){
@@ -1933,6 +2178,24 @@
     maybeGlitch(c, t);
     drawFinish(c);
 
+    // awareness ticker (idle only — a join always takes the stage)
+    if (phase === 'idle' && factT > FACT_GAP){
+      const ft = factT - FACT_GAP;
+      const a = Math.min(1, ft / 1.2, (FACT_SHOW - ft) / 1.2);
+      if (a > 0){
+        const slogan = (factN % 7) === 6;
+        const txt = slogan ? "there's always a spot for people like us ✳"
+                           : ND_FACTS[factOrder[factN % factOrder.length]];
+        c.save();
+        c.globalAlpha = a * 0.92;
+        c.textAlign = 'left';                      // stays clear of the QR box
+        c.font = '700 24px ' + DISPLAY;
+        c.fillStyle = slogan ? TH.accent : TH.ink;
+        tickerText(c, txt, 34, PH - 56, 740, 30);
+        c.restore();
+      }
+    }
+
     c.fillStyle = TH.accent; c.textAlign = 'left'; c.font = '700 20px ' + DISPLAY;
     c.fillText(totalCount ? 'LIVE · ' + totalCount + ' IN THE POOL' : 'LIVE · SCAN TO JOIN', 34, PH - 26);
   }
@@ -1950,6 +2213,10 @@
     else if (phase === 'settle' && phaseT > 1.1){
       people.push(hero); if (people.length > CAP) people.shift();
       hero = null; phase = 'idle'; phaseT = 0;
+    }
+    if (phase === 'idle'){
+      factT += dt;
+      if (factT > FACT_GAP + FACT_SHOW){ factT = 0; factN++; }
     }
     physics(dt);
     renderFeed(t);
@@ -2340,6 +2607,9 @@
     revealMsg.hidden = true;
     matchWrap.hidden = true;
     revealEl.hidden = false;
+    // replay the mission line's fade-in on every join
+    const nd = document.getElementById('ndLine');
+    nd.style.animation = 'none'; void nd.offsetWidth; nd.style.animation = '';
     revealEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
@@ -2348,6 +2618,44 @@
     renderPool();
     savePool();
   });
+
+  // --- idle eye life: rare blinks and sideways glances on the live canvas.
+  // Cosmetic only — exports and pool renders never receive `anim`, so saved
+  // dots always have open, centred eyes. Skipped under prefers-reduced-motion.
+  const eyeAnim = { blink: 0, look: 0 };
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    let nextBlink = performance.now() + 4000 + Math.random() * 6000;
+    let nextLook = performance.now() + 9000 + Math.random() * 8000;
+    let blinkT0 = -1, lookT0 = -1, lookDir = 1;
+    const BLINK_MS = 260, LOOK_MS = 1400;
+    (function eyeLife(now){
+      requestAnimationFrame(eyeLife);
+      if (!now || eyeStyle === 'none'){ eyeAnim.blink = 0; eyeAnim.look = 0; return; }
+      let dirty = false;
+      if (blinkT0 < 0 && now >= nextBlink){
+        blinkT0 = now;
+        nextBlink = now + 5000 + Math.random() * 9000;    // rare on purpose
+      }
+      if (blinkT0 >= 0){
+        const t = (now - blinkT0) / BLINK_MS;
+        eyeAnim.blink = t >= 1 ? 0 : Math.sin(t * Math.PI);
+        if (t >= 1) blinkT0 = -1;
+        dirty = true;
+      }
+      if (lookT0 < 0 && now >= nextLook){
+        lookT0 = now;
+        lookDir = Math.random() < 0.5 ? -1 : 1;
+        nextLook = now + 10000 + Math.random() * 12000;   // rarer still
+      }
+      if (lookT0 >= 0){
+        const t = (now - lookT0) / LOOK_MS;               // ease out, hold, ease back
+        eyeAnim.look = t >= 1 ? 0 : lookDir * Math.min(1, Math.min(t, 1 - t) * 5);
+        if (t >= 1) lookT0 = -1;
+        dirty = true;
+      }
+      if (dirty) draw();
+    })();
+  }
 
   // ================================================================
   // --- design terminal: personal tuning panel, opens only on #design.
