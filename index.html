@@ -1101,7 +1101,7 @@
   // headOnly: skip the garment. The torso is a rigid bell with a hard cut
   // bottom edge — fine inside a framed portrait, wrong as a free-floating
   // shape next to the organic heads. The wardrobe data is still recorded.
-  function drawPortrait(c, S, st, headOnly){
+  function drawPortrait(c, S, st, headOnly, anim){
     const [gs, gc] = parseGarment(st.g);
     const hh = parseHair(st.h);
     if (!headOnly) drawGarment(c, S, gs, gc, st.c);
@@ -1109,7 +1109,7 @@
     tracePath(c, st.r, FACE.x * S, FACE.y * S, FACE.r * S);
     c.fillStyle = st.c;
     c.fill();
-    drawEyes(c, st.r, FACE.x * S, FACE.y * S, FACE.r * S, st.e);
+    drawEyes(c, st.r, FACE.x * S, FACE.y * S, FACE.r * S, st.e, anim);
     if (hh && HAIR[hh.t][hh.s].front){
       hairEyeY = eyeLineY(st.r, st.e);
       HAIR[hh.t][hh.s].front(c, S, HAIR_COLORS[hh.k], st.r);
@@ -1129,7 +1129,8 @@
       ctx.fill();
       drawEyes(ctx, radii, cx, cy, R, curEye(), eyeAnim);
     } else {
-      drawPortrait(ctx, cw, { r: radii, c: color, e: curEye(), g: gid(), h: hid() });
+      // live canvas only — exports and pool renders never pass eyeAnim
+      drawPortrait(ctx, cw, { r: radii, c: color, e: curEye(), g: gid(), h: hid() }, false, eyeAnim);
     }
   }
 
